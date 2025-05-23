@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu } from "lucide-react"
+import { Menu, Moon, Sun } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { useTheme } from "next-themes"
+import { Switch } from "@/components/ui/switch"
 
 interface HeaderProps {
   title: string
@@ -16,6 +18,7 @@ export default function Header({ title }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { logout } = useAuth()
   const router = useRouter()
+  const { setTheme, theme } = useTheme()
 
   const handleLogout = () => {
     logout()
@@ -27,10 +30,11 @@ export default function Header({ title }: HeaderProps) {
     { title: "Lista de Desejos", path: "/lista-desejos" },
     { title: "Lista de Garantia", path: "/lista-garantia" },
     { title: "Lista de Solicitações", path: "/lista-solicitacoes" },
+    { title: "Pagamentos", path: "/pagamentos" },
   ]
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-white shadow-sm">
+    <header className="sticky top-0 z-10 border-b bg-background text-foreground shadow-sm">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -87,6 +91,14 @@ export default function Header({ title }: HeaderProps) {
               </Button>
             ))}
           </nav>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={theme === "dark"}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+              aria-label="Alternar modo escuro/claro"
+            />
+            {theme === "dark" ? <Moon className="w-5 h-5 text-yellow-400" /> : <Sun className="w-5 h-5 text-orange-400" />}
+          </div>
           <Button
             variant="outline"
             className="hidden md:inline-flex text-red-500 hover:text-red-700 hover:bg-red-50"
