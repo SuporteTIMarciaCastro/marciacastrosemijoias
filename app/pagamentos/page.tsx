@@ -54,11 +54,11 @@ export default function ListaPagamentosPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Header title="Pagamentos" />
+      <Header title="Solicitações de Pagamentos" />
       <main className="flex-1 p-4 md:p-6">
         <Card>
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-            <CardTitle>Lista de Pagamentos</CardTitle>
+            <CardTitle>Lista de Solicitaçõesde Pagamentos</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="Pesquisar pagamento..."

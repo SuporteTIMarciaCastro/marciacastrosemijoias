@@ -29,8 +29,8 @@ export default function Header({ title }: HeaderProps) {
     { title: "Menu Principal", path: "/dashboard" },
     { title: "Lista de Desejos", path: "/lista-desejos" },
     { title: "Lista de Garantia", path: "/lista-garantia" },
-    { title: "Lista de Solicitações", path: "/lista-solicitacoes" },
-    { title: "Pagamentos", path: "/pagamentos" },
+    { title: "Lista de Materiais ", path: "/lista-solicitacoes" },
+    { title: "Lista de Pagamentos", path: "/pagamentos" },
   ]
 
   return (
