@@ -9,29 +9,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/header"
 import { fetchPagamentos, deletePagamento, Pagamento } from "@/lib/firebase/pagamentos"
+import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function ListaPagamentosPage() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [pagamentoToDelete, setPagamentoToDelete] = useState<Pagamento | null>(null)
   const router = useRouter()
 
   useEffect(() => {
-    async function loadPagamentos() {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const data = await fetchPagamentos()
-        setPagamentos(data)
-      } catch (err) {
-        setError("Erro ao carregar pagamentos.")
-      } finally {
-        setIsLoading(false)
-      }
-    }
     loadPagamentos()
   }, [])
+
+  async function loadPagamentos() {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const data = await fetchPagamentos()
+      setPagamentos(data)
+    } catch (err) {
+      setError("Erro ao carregar pagamentos.")
+      toast.error("Erro ao carregar pagamentos")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleDelete(pagamento: Pagamento) {
+    try {
+      await deletePagamento(pagamento.id!)
+      toast.success("Pagamento removido com sucesso!")
+      loadPagamentos()
+    } catch (error) {
+      toast.error("Erro ao remover pagamento")
+    } finally {
+      setPagamentoToDelete(null)
+    }
+  }
 
   const filteredPagamentos = pagamentos.filter((p) =>
     (p.finalidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,7 +84,7 @@ export default function ListaPagamentosPage() {
       <main className="flex-1 p-4 md:p-6">
         <Card>
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-            <CardTitle>Lista de Solicitaçõesde Pagamentos</CardTitle>
+            <CardTitle>Lista de Solicitações de Pagamentos</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 placeholder="Pesquisar pagamento..."
@@ -96,7 +122,7 @@ export default function ListaPagamentosPage() {
                       <TableCell colSpan={6} className="text-center py-4">Nenhum pagamento encontrado</TableCell>
                     </TableRow>
                   ) : (
-                    filteredPagamentos.map((p, index) => (
+                    filteredPagamentos.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>{p.id}</TableCell>
                         <TableCell>{p.tipo}</TableCell>
@@ -108,7 +134,7 @@ export default function ListaPagamentosPage() {
                             <Button variant="default" size="sm" onClick={() => router.push(`/pagamentos/novo?id=${p.id}`)}>
                               Editar
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => {/* implementar remoção */}}>
+                            <Button variant="destructive" size="sm" onClick={() => setPagamentoToDelete(p)}>
                               Remover
                             </Button>
                           </div>
@@ -122,6 +148,23 @@ export default function ListaPagamentosPage() {
           </CardContent>
         </Card>
       </main>
+
+      <AlertDialog open={!!pagamentoToDelete} onOpenChange={() => setPagamentoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover este pagamento? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => pagamentoToDelete && handleDelete(pagamentoToDelete)}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 
