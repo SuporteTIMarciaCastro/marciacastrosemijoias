@@ -46,14 +46,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-[#18181b] px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md bg-[#23232b] text-white shadow-lg">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
             <Image src="/logo.png" alt="Marcia Castro Semijoias" width={120} height={120} priority />
           </div>
-          <CardTitle className="text-2xl font-bold">Comercial - Login</CardTitle>
-          <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
+          <CardTitle className="text-2xl font-bold text-white">Comercial - Login</CardTitle>
+          <CardDescription className="text-gray-300">Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -64,6 +64,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
+                className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
             </div>
             <div className="space-y-2">
@@ -74,9 +75,10 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" disabled={isLoading}>
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>

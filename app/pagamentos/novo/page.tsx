@@ -13,7 +13,7 @@ import { toast } from "sonner"
 
 const tiposPagamento = [
   { value: "reembolso", label: "Reembolso" },
-  { value: "pendente", label: "Pendente" },
+  { value: "a vencer", label: "A Vencer" },
 ]
 
 const situacoes = [
@@ -321,7 +321,7 @@ export default function NovoPagamentoPage() {
                   )}
                 </>
               )}
-              {tipo === "pendente" && (
+              {tipo === "a vencer" && (
                 <>
                   <div>
                     <label className="block mb-1 font-medium">Forma de Pagamento</label>
