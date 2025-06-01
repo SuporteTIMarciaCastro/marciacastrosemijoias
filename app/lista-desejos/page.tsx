@@ -12,6 +12,13 @@ import { useToast } from "@/components/ui/use-toast"
 import { fetchWishlistItems, deleteWishlistItem } from "@/lib/firebase/wishlist"
 import type { WishlistItem } from "@/types"
 import Header from "@/components/header"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal } from "lucide-react"
 
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
@@ -150,18 +157,28 @@ export default function ListaDesejosPage() {
                         </TableCell>
                         <TableCell>{item.descricao}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={() => router.push(`/lista-desejos/editar/${item.id}`)}
-                            >
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleDelete(item.id)}>
-                              Remover
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/visualizar/${item.id}`)}>
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/editar/${item.id}`)}>
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => handleDelete(item.id)}
+                              >
+                                Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))

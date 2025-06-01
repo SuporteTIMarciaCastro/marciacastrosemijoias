@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { addWarrantyItem, updateWarrantyItem, fetchWarrantyItem } from "@/lib/firebase/warranty"
+import { StatusBadge } from "@/components/status-badge"
 
 interface GarantiaFormModalProps {
   isOpen: boolean
@@ -175,7 +176,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
   }
 
-  const statusOptions = ["Devolvida para loja", "Extraviada-crédito cliente", "Em análise", "Concluída", "Pendente"]
+  const statusOptions = ["Recebido loja", "Recebido comercial","Recebido fábrica", "Devolvido comercial","Devolvido loja", "Devolvido cliente","Extraviada-crédito cliente", "Negado"]
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -242,7 +243,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dataValidade">Data de Validade</Label>
+                <Label htmlFor="dataValidade">Entrada da Solicitação</Label>
                 <Input
                   id="dataValidade"
                   name="dataValidade"
@@ -258,12 +259,14 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               <Label htmlFor="status">Status</Label>
               <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
+                  <SelectValue placeholder="Selecione o status">
+                    {formData.status && <StatusBadge status={formData.status} />}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {statusOptions.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {option}
+                      <StatusBadge status={option} />
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -303,11 +306,11 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="observacao">Observação</Label>
+              <Label htmlFor="observacao">Justificativa</Label>
               <Textarea
                 id="observacao"
                 name="observacao"
-                placeholder="Observações adicionais..."
+                placeholder="Justificativa da solicitação..."
                 value={formData.observacao}
                 onChange={handleInputChange}
                 className="min-h-[100px]"

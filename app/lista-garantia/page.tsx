@@ -11,6 +11,14 @@ import { fetchWarrantyItems, deleteWarrantyItem } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
+import { StatusBadge } from "@/components/status-badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,8 +137,7 @@ export default function ListaGarantiaPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="py-3 px-4 text-left">Nome</th>
-                    <th className="py-3 px-4 text-left">Data da Compra</th>
-                    <th className="py-3 px-4 text-left">Data de Validade</th>
+                    <th className="py-3 px-4 text-left">Entrada da Solicitação</th>
                     <th className="py-3 px-4 text-left">Status</th>
                     <th className="py-3 px-4 text-left">Loja</th>
                     <th className="py-3 px-4 text-left">Ações</th>
@@ -139,13 +146,13 @@ export default function ListaGarantiaPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-4">
+                      <td colSpan={5} className="text-center py-4">
                         Carregando...
                       </td>
                     </tr>
                   ) : filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-4">
+                      <td colSpan={5} className="text-center py-4">
                         Nenhuma garantia encontrada
                       </td>
                     </tr>
@@ -153,19 +160,37 @@ export default function ListaGarantiaPage() {
                     filteredItems.map((item) => (
                       <tr key={item.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4">{item.nome}</td>
-                        <td className="py-3 px-4">{item.dataCompra}</td>
                         <td className="py-3 px-4">{item.dataValidade}</td>
-                        <td className="py-3 px-4">{item.status}</td>
+                        <td className="py-3 px-4">
+                          <StatusBadge status={item.status} />
+                        </td>
                         <td className="py-3 px-4">{item.loja}</td>
                         <td className="py-3 px-4">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <Button variant="default" size="sm" onClick={() => handleEdit(item.id)}>
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => setItemToDelete(item.id)}>
-                              Remover
-                            </Button>
-                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => window.open(`/lista-garantia/visualizar/${item.id}`, '_blank')}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(item.id)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-red-600"
+                                onClick={() => setItemToDelete(item.id)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))

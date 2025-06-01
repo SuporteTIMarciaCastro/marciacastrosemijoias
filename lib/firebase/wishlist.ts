@@ -20,21 +20,12 @@ export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
 
 // Buscar todos os itens da lista de desejos
 export async function fetchWishlistItems(): Promise<WishlistItem[]> {
-  try {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
-    const querySnapshot = await getDocs(q)
-
-    return querySnapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        }) as WishlistItem,
-    )
-  } catch (error) {
-    console.error("Erro ao buscar itens da lista de desejos:", error)
-    throw error
-  }
+  const wishlistRef = collection(db, "wishlist")
+  const snapshot = await getDocs(wishlistRef)
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as WishlistItem[]
 }
 
 // Buscar um item específico da lista de desejos
@@ -58,26 +49,27 @@ export async function fetchWishlistItem(id: string): Promise<WishlistItem | null
 }
 
 // Atualizar um item da lista de desejos
-export async function updateWishlistItem(id: string, data: Partial<WishlistItem>) {
-  try {
-    const docRef = doc(db, COLLECTION_NAME, id)
-    await updateDoc(docRef, {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    })
-  } catch (error) {
-    console.error("Erro ao atualizar item da lista de desejos:", error)
-    throw error
-  }
+export async function updateWishlistItem(id: string, data: Omit<WishlistItem, "id">): Promise<void> {
+  const docRef = doc(db, "wishlist", id)
+  await updateDoc(docRef, data)
 }
 
 // Excluir um item da lista de desejos
-export async function deleteWishlistItem(id: string) {
-  try {
-    const docRef = doc(db, COLLECTION_NAME, id)
-    await deleteDoc(docRef)
-  } catch (error) {
-    console.error("Erro ao excluir item da lista de desejos:", error)
-    throw error
+export async function deleteWishlistItem(id: string): Promise<void> {
+  const docRef = doc(db, "wishlist", id)
+  await deleteDoc(docRef)
+}
+
+export async function fetchWishlistItemById(id: string): Promise<WishlistItem> {
+  const docRef = doc(db, "wishlist", id)
+  const docSnap = await getDoc(docRef)
+  
+  if (!docSnap.exists()) {
+    throw new Error("Item não encontrado")
   }
+
+  return {
+    id: docSnap.id,
+    ...docSnap.data(),
+  } as WishlistItem
 }
