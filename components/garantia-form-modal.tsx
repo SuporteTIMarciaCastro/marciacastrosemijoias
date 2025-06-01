@@ -25,7 +25,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     nome: "",
     dataCompra: "",
     dataValidade: "",
-    status: "Devolvida para loja",
+    status: "Recebido loja",
     loja: "",
     observacao: "",
     notaCompra: "",
@@ -86,7 +86,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
       nome: "",
       dataCompra: "",
       dataValidade: "",
-      status: "Devolvida para loja",
+      status: "Recebido loja",
       loja: "",
       observacao: "",
       notaCompra: "",
@@ -255,23 +255,25 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status">
-                    {formData.status && <StatusBadge status={formData.status} />}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {statusOptions.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      <StatusBadge status={option} />
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {itemId && (
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o status">
+                      {formData.status && <StatusBadge status={formData.status} />}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        <StatusBadge status={option} />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="notaCompra">Nota de Compra</Label>
