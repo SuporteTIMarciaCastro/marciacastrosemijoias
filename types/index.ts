@@ -39,6 +39,10 @@ export interface MaterialRequest {
   justificativa: string
   grau: string
   status: string
-  createdAt?: string
-  updatedAt?: string
+  materiais?: {
+    quantidade: string
+    descricao: string
+  }[]
+  createdAt: Date
+  updatedAt: Date
 }

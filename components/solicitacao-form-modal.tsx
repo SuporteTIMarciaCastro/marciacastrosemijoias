@@ -11,11 +11,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { addMaterialRequest, updateMaterialRequest, fetchMaterialRequest } from "@/lib/firebase/material-requests"
+import { GrauBadge } from "@/components/grau-badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Plus, Trash2 } from "lucide-react"
+
+interface Material {
+  quantidade: string
+  descricao: string
+}
 
 interface SolicitacaoFormModalProps {
   isOpen: boolean
   onClose: () => void
-  itemId?: string // Se fornecido, estamos editando; caso contrário, estamos adicionando
+  itemId?: string
   onSuccess: () => void
 }
 
@@ -27,11 +35,11 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     grau: "Médio",
     status: "Pendente",
   })
+  const [materiais, setMateriais] = useState<Material[]>([{ quantidade: "", descricao: "" }])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
-  // Carregar dados se estiver editando
   useEffect(() => {
     if (itemId && isOpen) {
       setIsLoading(true)
@@ -45,6 +53,10 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
               grau: item.grau || "Médio",
               status: item.status || "Pendente",
             })
+            // Se houver materiais salvos, carrega-os
+            if (item.materiais) {
+              setMateriais(item.materiais)
+            }
           }
         })
         .catch((error) => {
@@ -59,7 +71,6 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
           setIsLoading(false)
         })
     } else {
-      // Resetar formulário quando abrir para adicionar novo
       resetForm()
     }
   }, [itemId, isOpen, toast])
@@ -72,6 +83,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
       grau: "Médio",
       status: "Pendente",
     })
+    setMateriais([{ quantidade: "", descricao: "" }])
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -83,21 +95,60 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleMaterialChange = (index: number, field: keyof Material, value: string) => {
+    const newMateriais = [...materiais]
+    newMateriais[index] = { ...newMateriais[index], [field]: value }
+    setMateriais(newMateriais)
+  }
+
+  const addMaterial = () => {
+    setMateriais([...materiais, { quantidade: "", descricao: "" }])
+  }
+
+  const removeMaterial = (index: number) => {
+    if (materiais.length > 1) {
+      const newMateriais = materiais.filter((_, i) => i !== index)
+      setMateriais(newMateriais)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Validação dos materiais
+    if (materiais.some(m => !m.quantidade || !m.descricao)) {
+      toast({
+        title: "Erro",
+        description: "Preencha todos os campos dos materiais",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     try {
+      const requestData = {
+        ...formData,
+        materiais,
+      }
+
       if (itemId) {
-        // Editar existente
-        await updateMaterialRequest(itemId, formData)
+        await updateMaterialRequest(itemId, {
+          ...requestData,
+          updatedAt: new Date()
+        })
         toast({
           title: "Sucesso",
           description: "Solicitação atualizada com sucesso!",
         })
       } else {
-        // Adicionar novo
-        await addMaterialRequest(formData)
+        await addMaterialRequest({
+          ...requestData,
+          status: "Pendente",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         toast({
           title: "Sucesso",
           description: "Solicitação adicionada com sucesso!",
@@ -122,7 +173,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{itemId ? "Editar Solicitação" : "Adicionar Nova Solicitação"}</DialogTitle>
         </DialogHeader>
@@ -135,37 +186,86 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="setor">Setor</Label>
-                <Select
-                    value={formData.setor}
-                    onValueChange={(value) => handleSelectChange("setor", value)}
-                    required
-                >
-                    <SelectTrigger>
-                    <SelectValue placeholder="Selecione um setor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="Cocais Shopping">Cocais Shopping</SelectItem>
-                    <SelectItem value="Parnaíba Shopping">Parnaíba Shopping</SelectItem>
-                    <SelectItem value="Rio Anil Shopping">Rio Anil Shopping</SelectItem>
-                    <SelectItem value="Rio Poty Shopping">Rio Poty Shopping</SelectItem>
-                    <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
-                    </SelectContent>
-                </Select>
-
-
+              <Select
+                value={formData.setor}
+                onValueChange={(value) => handleSelectChange("setor", value)}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Comercial">Comercial</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Financeiro">Financeiro</SelectItem>
+                  <SelectItem value="T.I">T.I</SelectItem>
+                  <SelectItem value="Cocais Shopping">Cocais Shopping</SelectItem>
+                  <SelectItem value="Parnaíba Shopping">Parnaíba Shopping</SelectItem>
+                  <SelectItem value="Rio Anil Shopping">Rio Anil Shopping</SelectItem>
+                  <SelectItem value="Rio Poty Shopping">Rio Poty Shopping</SelectItem>
+                  <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
-              <Textarea
-                id="descricao"
-                name="descricao"
-                placeholder="Descreva o material solicitado..."
-                value={formData.descricao}
-                onChange={handleInputChange}
-                className="min-h-[100px]"
-                required
-              />
+              <div className="flex items-center justify-between">
+                <Label>Materiais</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addMaterial}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Material
+                </Button>
+              </div>
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[100px]">Quantidade</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {materiais.map((material, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={material.quantidade}
+                            onChange={(e) => handleMaterialChange(index, "quantidade", e.target.value)}
+                            placeholder="Qtd"
+                            required
+                            className="w-full"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={material.descricao}
+                            onChange={(e) => handleMaterialChange(index, "descricao", e.target.value)}
+                            placeholder="Descrição do material"
+                            required
+                            className="w-full"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {materiais.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeMaterial(index)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -173,7 +273,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
               <Textarea
                 id="justificativa"
                 name="justificativa"
-                placeholder="Justifique a necessidade deste material..."
+                placeholder="Justifique a necessidade destes materiais..."
                 value={formData.justificativa}
                 onChange={handleInputChange}
                 className="min-h-[100px]"
@@ -186,33 +286,37 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
                 <Label htmlFor="grau">Grau de Necessidade</Label>
                 <Select value={formData.grau} onValueChange={(value) => handleSelectChange("grau", value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o grau" />
+                    <SelectValue placeholder="Selecione o grau">
+                      {formData.grau && <GrauBadge grau={formData.grau} />}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {grauOptions.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {option}
+                        <GrauBadge grau={option} />
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {itemId && (
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end gap-4 pt-2">

@@ -13,6 +13,13 @@ import { fetchMaterialRequests, deleteMaterialRequest } from "@/lib/firebase/mat
 import type { MaterialRequest } from "@/types"
 import Header from "@/components/header"
 import SolicitacaoFormModal from "@/components/solicitacao-form-modal"
+import { GrauBadge } from "@/components/grau-badge"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
 
 export default function ListaSolicitacoesPage() {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([])
@@ -97,6 +111,10 @@ export default function ListaSolicitacoesPage() {
     loadMaterialRequests()
   }
 
+  const handleView = (id: string) => {
+    router.push(`/lista-solicitacoes/visualizar/${id}`)
+  }
+
   const filteredRequests = materialRequests.filter(
     (request) =>
       request.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,7 +127,7 @@ export default function ListaSolicitacoesPage() {
       case "concluído":
         return <Badge className="bg-green-500">Concluído</Badge>
       case "recusado":
-        return <Badge variant="destructive">Recusado</Badge>
+        return <Badge  variant="destructive">Recusado</Badge>
       case "pendente":
         return <Badge variant="outline">Pendente</Badge>
       default:
@@ -120,14 +138,20 @@ export default function ListaSolicitacoesPage() {
   const getGrauBadge = (grau: string) => {
     switch (grau.toLowerCase()) {
       case "urgente":
-        return <Badge variant="destructive">Urgente</Badge>
+        return <Badge className="bg-red-500" variant="destructive">Urgente</Badge>
       case "médio":
-        return <Badge variant="secondary">Médio</Badge>
+        return <Badge className="bg-red-300" variant="secondary">Médio</Badge>
       case "baixo":
-        return <Badge variant="outline">Baixo</Badge>
+        return <Badge className="bg-red-100" variant="outline">Baixo</Badge>
       default:
         return <Badge variant="secondary">{grau}</Badge>
     }
+  }
+
+  const formatMateriaisPreview = (materiais: MaterialRequest["materiais"]) => {
+    if (!materiais || materiais.length === 0) return "Sem materiais"
+    
+    return materiais.map(m => `${m.quantidade}x ${m.descricao}`).join(", ")
   }
 
   if (!user) {
@@ -158,11 +182,11 @@ export default function ListaSolicitacoesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Setor</TableHead>
-                    <TableHead>Descrição</TableHead>
+                    <TableHead>Materiais</TableHead>
                     <TableHead>Justificativa</TableHead>
                     <TableHead>Grau</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -183,20 +207,59 @@ export default function ListaSolicitacoesPage() {
                     filteredRequests.map((request, index) => (
                       <TableRow key={request.id}>
                         <TableCell>{index + 1}</TableCell>
-                        <TableCell>{request.setor}</TableCell>
-                        <TableCell className="max-w-xs truncate">{request.descricao}</TableCell>
-                        <TableCell className="max-w-xs truncate">{request.justificativa}</TableCell>
-                        <TableCell>{getGrauBadge(request.grau)}</TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
+                        <TableCell>{request.setor}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="truncate">
+                                  {formatMateriaisPreview(request.materiais)}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-md">
+                                <div className="space-y-1">
+                                  {request.materiais?.map((material, idx) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                      <span className="font-medium">{material.quantidade}x</span>
+                                      <span>{material.descricao}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{request.justificativa}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-2">
-                            <Button variant="default" size="sm" onClick={() => handleEdit(request.id)}>
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => setItemToDelete(request.id)}>
-                              Remover
-                            </Button>
-                          </div>
+                          <GrauBadge grau={request.grau} />
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleView(request.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEdit(request.id)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => setItemToDelete(request.id)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
