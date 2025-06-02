@@ -11,6 +11,12 @@ import Header from "@/components/header"
 import { fetchPagamentos, deletePagamento, Pagamento } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -20,6 +26,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import PagamentoFormModal from "@/components/pagamento-form-modal"
 
 export default function ListaPagamentosPage() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
@@ -27,6 +35,7 @@ export default function ListaPagamentosPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [pagamentoToDelete, setPagamentoToDelete] = useState<Pagamento | null>(null)
+  const [pagamentoToEdit, setPagamentoToEdit] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -78,6 +87,10 @@ export default function ListaPagamentosPage() {
     }
   }
 
+  const handleView = (id: string) => {
+    router.push(`/pagamentos/visualizar/${id}`)
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header title="Solicitações de Pagamentos" />
@@ -103,9 +116,9 @@ export default function ListaPagamentosPage() {
                     <TableHead>ID</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Finalidade</TableHead>
-                    <TableHead>Justificativa</TableHead>
                     <TableHead>Situação</TableHead>
-                    <TableHead>Ações</TableHead>
+                    <TableHead>Data de Vencimento</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -127,17 +140,40 @@ export default function ListaPagamentosPage() {
                         <TableCell>{p.id}</TableCell>
                         <TableCell>{p.tipo}</TableCell>
                         <TableCell className="max-w-xs truncate">{p.finalidade}</TableCell>
-                        <TableCell className="max-w-xs truncate">{p.justificativa}</TableCell>
                         <TableCell>{getStatusBadge(p.situacao)}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-2">
-                            <Button variant="default" size="sm" onClick={() => router.push(`/pagamentos/novo?id=${p.id}`)}>
-                              Editar
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => setPagamentoToDelete(p)}>
-                              Remover
-                            </Button>
-                          </div>
+                          {p.tipo === "Agendado" && p.dataVencimento ? (
+                            new Date(p.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR')
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Abrir menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleView(p.id!)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setPagamentoToEdit(p.id!)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => setPagamentoToDelete(p)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Remover
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -165,6 +201,13 @@ export default function ListaPagamentosPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PagamentoFormModal
+        isOpen={!!pagamentoToEdit}
+        onClose={() => setPagamentoToEdit(null)}
+        pagamentoId={pagamentoToEdit}
+        onSuccess={loadPagamentos}
+      />
     </div>
   )
 } 

@@ -30,7 +30,7 @@ export default function Header({ title }: HeaderProps) {
     { title: "Lista de Desejos", path: "/lista-desejos" },
     { title: "Lista de Garantia", path: "/lista-garantia" },
     { title: "Lista de Materiais ", path: "/lista-solicitacoes" },
-    { title: "Lista de Pagamentos", path: "/pagamentos" },
+    // { title: "Lista de Pagamentos", path: "/pagamentos" },
   ]
 
   return (
