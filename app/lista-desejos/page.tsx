@@ -19,6 +19,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal } from "lucide-react"
+import { PermissionGuard } from '@/components/PermissionGuard'
+import Link from "next/link"
 
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
@@ -81,114 +83,113 @@ export default function ListaDesejosPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header title="Lista de Desejos" />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Lista de Desejos</h1>
+        <PermissionGuard module="listaDesejos" action="adicionar">
+          <Link
+            href="/lista-desejos/novo"
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Adicionar Item
+          </Link>
+        </PermissionGuard>
+      </div>
 
-      <main className="flex-1 p-4 md:p-6">
-        <Card>
-          <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-            <CardTitle>Lista de Desejos</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Pesquisar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
-              {/*   <Button onClick={() => router.push("/lista-desejos/novo")}>Adicionar Novo</Button>  */}
-              <Button variant="outline" onClick={() => router.push("/lista-desejos/formulario")}>
-                Formulário para Cliente
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Celular</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Produto</TableHead>
-                    <TableHead>Já Comprou</TableHead>
-                    <TableHead>Loja Destino</TableHead>
-                    <TableHead>Imagem</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center py-4">
-                        Carregando...
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredItems.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center py-4">
-                        Nenhum item encontrado
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredItems.map((item, index) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{index + 1}</TableCell>
-                        <TableCell>{item.nome}</TableCell>
-                        <TableCell>{item.celular}</TableCell>
-                        <TableCell>{item.email}</TableCell>
-                        <TableCell>{item.produto}</TableCell>
-                        <TableCell>{item.jaComprou ? "Sim" : "Não"}</TableCell>
-                        <TableCell>{item.lojaDestino}</TableCell>
-                        <TableCell>
-                          {item.imagemBase64 ? (
-                            <div className="relative h-16 w-16">
-                              <Image
-                                src={item.imagemBase64 || "/placeholder.svg"}
-                                alt={item.produto}
-                                fill
-                                className="object-cover rounded-md"
-                              />
-                            </div>
-                          ) : (
-                            "Sem imagem"
-                          )}
-                        </TableCell>
-                        <TableCell>{item.descricao}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/visualizar/${item.id}`)}>
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/editar/${item.id}`)}>
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDelete(item.id)}
-                              >
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+      {/* Campo de busca */}
+      <div className="mb-6">
+        <input
+          type="text"
+          placeholder="Buscar por cliente ou descrição..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+
+      {/* Lista de itens */}
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Cliente
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Produto
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Preço
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Data
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredItems.map((item) => (
+              <tr key={item.id}>
+                <td className="px-6 py-4 whitespace-nowrap">{item.nome}</td>
+                <td className="px-6 py-4">{item.produto}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {item.preco.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  })}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {new Date(item.data).toLocaleDateString('pt-BR')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    item.status === 'Concluído' ? 'bg-green-100 text-green-800' :
+                    item.status === 'Em produção' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {item.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex justify-end space-x-2">
+                    <PermissionGuard module="listaDesejos" action="visualizar">
+                      <Link
+                        href={`/lista-desejos/${item.id}`}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        Visualizar
+                      </Link>
+                    </PermissionGuard>
+                    
+                    <PermissionGuard module="listaDesejos" action="editar">
+                      <Link
+                        href={`/lista-desejos/${item.id}/editar`}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        Editar
+                      </Link>
+                    </PermissionGuard>
+                    
+                    <PermissionGuard module="listaDesejos" action="remover">
+                      <button
+                        onClick={() => handleDelete(item.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Remover
+                      </button>
+                    </PermissionGuard>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }

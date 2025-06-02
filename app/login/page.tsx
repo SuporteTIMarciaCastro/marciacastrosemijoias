@@ -12,7 +12,7 @@ import { useAuth } from "@/context/auth-context"
 import { toast } from "@/components/ui/use-toast"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
@@ -23,21 +23,23 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Verificação simples para as credenciais fornecidas
-      if (username === "adm" && password === "marcia@2025") {
-        await login(username, password)
-        router.push("/dashboard")
-      } else {
-        toast({
-          title: "Erro de autenticação",
-          description: "Usuário ou senha incorretos",
-          variant: "destructive",
-        })
+      await login(email, password)
+      router.push("/dashboard")
+    } catch (error: any) {
+      let errorMessage = "Ocorreu um erro ao fazer login"
+      
+      // Tratamento de erros específicos do Firebase
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = "Email ou senha incorretos"
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "Email inválido"
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Muitas tentativas de login. Tente novamente mais tarde"
       }
-    } catch (error) {
+
       toast({
         title: "Erro de autenticação",
-        description: "Ocorreu um erro ao fazer login",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -59,10 +61,11 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
-                id="username"
-                placeholder="Usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
