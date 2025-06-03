@@ -9,6 +9,8 @@ export interface WishlistItem {
   lojaDestino: string
   imagemBase64: string | null
   descricao: string
+  data: string
+  status: 'Pendente' | 'Em produção' | 'Concluído'
   createdAt?: string
   updatedAt?: string
 }

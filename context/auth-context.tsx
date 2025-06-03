@@ -29,19 +29,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         try {
           // Busca as informações adicionais do usuário no Firestore
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.email!))
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
           if (userDoc.exists()) {
-            const userData = userDoc.data()
+            const userData = userDoc.data() as User
             setUser({
               id: firebaseUser.uid,
               email: firebaseUser.email!,
               name: userData.name,
-              isAdmin: userData.isAdmin || false,
+              isAdmin: userData.isAdmin,
               permissions: userData.permissions
             })
+          } else {
+            throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.')
           }
         } catch (error) {
           console.error('Erro ao carregar dados do usuário:', error)
+          setUser(null)
+          await signOut(auth)
         }
       } else {
         setUser(null)
@@ -55,21 +59,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.email!))
+      const user = userCredential.user
+
+      // Busca o documento do usuário no Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
       
       if (!userDoc.exists()) {
-        throw new Error('Usuário não encontrado')
+        throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.')
       }
 
-      const userData = userDoc.data()
+      const userData = userDoc.data() as User
       setUser({
-        id: userCredential.user.uid,
-        email: userCredential.user.email!,
+        id: user.uid,
+        email: user.email!,
         name: userData.name,
-        isAdmin: userData.isAdmin || false,
+        isAdmin: userData.isAdmin,
         permissions: userData.permissions
       })
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro no login:', error)
       throw error
     }

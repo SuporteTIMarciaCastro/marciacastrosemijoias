@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaGarantiaPage() {
   const [warrantyItems, setWarrantyItems] = useState<WarrantyItem[]>([])
@@ -166,31 +167,11 @@ export default function ListaGarantiaPage() {
                         </td>
                         <td className="py-3 px-4">{item.loja}</td>
                         <td className="py-3 px-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => window.open(`/lista-garantia/visualizar/${item.id}`, '_blank')}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(item.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => setItemToDelete(item.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ActionsMenu
+                            viewPath="/lista-garantia/visualizar"
+                            onEdit={() => handleEdit(item.id)}
+                            onDelete={() => setItemToDelete(item.id)}
+                          />
                         </td>
                       </tr>
                     ))

@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { toast } from "@/components/ui/use-toast"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -23,18 +25,43 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
+      // Primeiro, tenta autenticar com o Firebase
+      await signInWithEmailAndPassword(auth, email, password)
+      
+      // Se a autenticação for bem-sucedida, faz o login no contexto da aplicação
       await login(email, password)
+      
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo ao sistema!",
+      })
+      
       router.push("/dashboard")
     } catch (error: any) {
       let errorMessage = "Ocorreu um erro ao fazer login"
       
-      // Tratamento de erros específicos do Firebase
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        errorMessage = "Email ou senha incorretos"
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = "Email inválido"
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Muitas tentativas de login. Tente novamente mais tarde"
+      // Tratamento específico dos erros do Firebase
+      switch (error.code) {
+        case 'auth/invalid-email':
+          errorMessage = "O email informado é inválido"
+          break
+        case 'auth/user-disabled':
+          errorMessage = "Esta conta foi desativada"
+          break
+        case 'auth/user-not-found':
+          errorMessage = "Não existe uma conta com este email"
+          break
+        case 'auth/wrong-password':
+          errorMessage = "Senha incorreta"
+          break
+        case 'auth/too-many-requests':
+          errorMessage = "Muitas tentativas de login. Tente novamente mais tarde"
+          break
+        case 'auth/network-request-failed':
+          errorMessage = "Erro de conexão. Verifique sua internet"
+          break
+        default:
+          console.error('Erro de autenticação:', error)
       }
 
       toast({
@@ -81,7 +108,11 @@ export default function LoginPage() {
                 className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
             </div>
-            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" 
+              disabled={isLoading}
+            >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>

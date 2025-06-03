@@ -37,6 +37,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaSolicitacoesPage() {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([])
@@ -235,31 +236,11 @@ export default function ListaSolicitacoesPage() {
                           <GrauBadge grau={request.grau} />
                         </TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleView(request.id)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleEdit(request.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => setItemToDelete(request.id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ActionsMenu
+                            viewPath="/lista-solicitacoes/visualizar"
+                            onEdit={() => handleEdit(request.id)}
+                            onDelete={() => setItemToDelete(request.id)}
+                          />
                         </TableCell>
                       </TableRow>
                     ))
