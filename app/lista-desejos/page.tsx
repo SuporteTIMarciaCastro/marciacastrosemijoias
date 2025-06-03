@@ -167,6 +167,7 @@ export default function ListaDesejosPage() {
                             editPath="/lista-desejos/editar"
                             itemId={item.id}
                             onDelete={() => handleDelete(item.id)}
+                            pageType="listaDesejos"
                           />
                         </TableCell>
                       </TableRow>

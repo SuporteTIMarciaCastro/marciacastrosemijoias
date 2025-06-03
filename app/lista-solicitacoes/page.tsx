@@ -240,6 +240,8 @@ export default function ListaSolicitacoesPage() {
                             viewPath="/lista-solicitacoes/visualizar"
                             onEdit={() => handleEdit(request.id)}
                             onDelete={() => setItemToDelete(request.id)}
+                            pageType="listaMateriais"
+                            itemId={request.id}
                           />
                         </TableCell>
                       </TableRow>

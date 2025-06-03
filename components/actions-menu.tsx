@@ -10,6 +10,8 @@ import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
+type PageType = "listaDesejos" | "listaGarantia" | "listaMateriais" | "pagamentos"
+
 interface ActionsMenuProps {
   onView?: () => void
   onEdit?: () => void
@@ -17,9 +19,10 @@ interface ActionsMenuProps {
   viewPath?: string
   editPath?: string
   itemId?: string
+  pageType: PageType
 }
 
-export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, itemId }: ActionsMenuProps) {
+export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, itemId, pageType }: ActionsMenuProps) {
   const { user } = useAuth()
   const router = useRouter()
 
@@ -43,6 +46,11 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
     }
   }
 
+  // Verifica as permissões específicas da página
+  const canView = user?.permissions?.[pageType]?.visualizar
+  const canEdit = user?.permissions?.[pageType]?.editar
+  const canDelete = user?.permissions?.[pageType]?.remover
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -52,22 +60,21 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {/* Visualizar - disponível para todos os usuários */}
-        <DropdownMenuItem onClick={handleView}>
-          <Eye className="mr-2 h-4 w-4" />
-          Visualizar
-        </DropdownMenuItem>
+        {canView && (
+          <DropdownMenuItem onClick={handleView}>
+            <Eye className="mr-2 h-4 w-4" />
+            Visualizar
+          </DropdownMenuItem>
+        )}
 
-        {/* Editar - apenas para admin e gerente */}
-        {(user?.perfil === "admin" || user?.perfil === "gerente") && (
+        {canEdit && (
           <DropdownMenuItem onClick={handleEdit}>
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </DropdownMenuItem>
         )}
 
-        {/* Remover - apenas para admin */}
-        {user?.perfil === "admin" && (
+        {canDelete && (
           <DropdownMenuItem
             className="text-red-600"
             onClick={onDelete}

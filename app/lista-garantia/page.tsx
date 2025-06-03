@@ -171,6 +171,8 @@ export default function ListaGarantiaPage() {
                             viewPath="/lista-garantia/visualizar"
                             onEdit={() => handleEdit(item.id)}
                             onDelete={() => setItemToDelete(item.id)}
+                            pageType="listaGarantia"
+                            itemId={item.id}
                           />
                         </td>
                       </tr>
