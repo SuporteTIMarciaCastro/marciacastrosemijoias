@@ -46,7 +46,7 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
     }
   }
 
-  // Verifica as permissões específicas da página
+  // Verifica as permissões específicas da páginaa
   const canView = user?.permissions?.[pageType]?.visualizar
   const canEdit = user?.permissions?.[pageType]?.editar
   const canDelete = user?.permissions?.[pageType]?.remover
