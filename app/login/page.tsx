@@ -40,6 +40,10 @@ export default function LoginPage() {
     } catch (error: any) {
       let errorMessage = "Ocorreu um erro ao fazer login"
       
+      // Adicionando log para debug
+      console.log('Código do erro:', error.code)
+      console.log('Erro completo:', error)
+      
       // Tratamento específico dos erros do Firebase
       switch (error.code) {
         case 'auth/invalid-email':
@@ -53,6 +57,15 @@ export default function LoginPage() {
           break
         case 'auth/wrong-password':
           errorMessage = "Senha incorreta"
+          break
+        case 'auth/invalid-credential':
+          // Verifica se o email está em um formato válido
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(email)) {
+            errorMessage = "O formato do email é inválido"
+          } else {
+            errorMessage = "Email ou senha incorretos"
+          }
           break
         case 'auth/too-many-requests':
           errorMessage = "Muitas tentativas de login. Tente novamente mais tarde"

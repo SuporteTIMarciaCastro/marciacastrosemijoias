@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
+import Header from "@/components/header"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -29,26 +30,30 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#18181b] p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center">
-          <Image src="/logo.png" alt="Marcia Castro Semijoias" width={150} height={150} priority />
-        </div>
+    <div className="flex min-h-screen flex-col">
+      <Header title="Dashboard" />
 
-        <Card className="bg-[#23232b] text-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl text-white">Menu Principal</CardTitle>
-            <CardDescription className="text-center text-gray-300">Escolha uma opção:</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {menuItems.map((item, index) => (
-              <Button key={index} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" onClick={() => router.push(item.path)}>
-                {item.title}
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
+      <main className="flex-1 p-4 md:p-6">
+        <div className="max-w-md mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-2xl">Menu Principal</CardTitle>
+              <CardDescription className="text-center">Escolha uma opção:</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {menuItems.map((item, index) => (
+                <Button 
+                  key={index} 
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" 
+                  onClick={() => router.push(item.path)}
+                >
+                  {item.title}
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   )
 }

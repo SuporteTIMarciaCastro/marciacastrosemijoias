@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Copy, ExternalLink } from "lucide-react"
 import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaDesejosPage() {
@@ -74,6 +74,15 @@ export default function ListaDesejosPage() {
     }
   }
 
+  const handleCopyFormUrl = () => {
+    const formUrl = `${window.location.origin}/lista-desejos/formulario`
+    navigator.clipboard.writeText(formUrl)
+    toast({
+      title: "URL copiada",
+      description: "O link do formulário foi copiado para a área de transferência",
+    })
+  }
+
   const filteredItems = wishlistItems.filter(
     (item) =>
       item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,10 +109,24 @@ export default function ListaDesejosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-xs"
               />
-              {/*   <Button onClick={() => router.push("/lista-desejos/novo")}>Adicionar Novo</Button>  */}
-              <Button variant="outline" onClick={() => router.push("/lista-desejos/formulario")}>
-                Formulário para Cliente
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Formulário para Cliente
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => router.push("/lista-desejos/formulario")}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Abrir Formulário
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyFormUrl}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar URL
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
           <CardContent>

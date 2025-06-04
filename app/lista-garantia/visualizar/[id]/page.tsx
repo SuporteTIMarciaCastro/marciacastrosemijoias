@@ -8,9 +8,11 @@ import { useToast } from "@/components/ui/use-toast"
 import { fetchWarrantyItem } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import { StatusBadge } from "@/components/status-badge"
-import { Calendar, MapPin, User, Mail, Phone, FileText, Image as ImageIcon } from "lucide-react"
+import { Calendar, MapPin, User, Mail, Phone, FileText, Image as ImageIcon, Copy } from "lucide-react"
+import { use } from "react"
 
-export default function VisualizarGarantiaPage({ params }: { params: { id: string } }) {
+export default function VisualizarGarantiaPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [item, setItem] = useState<WarrantyItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
@@ -18,7 +20,7 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
   useEffect(() => {
     const loadItem = async () => {
       try {
-        const data = await fetchWarrantyItem(params.id)
+        const data = await fetchWarrantyItem(id)
         setItem(data)
       } catch (error) {
         toast({
@@ -32,7 +34,7 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
     }
 
     loadItem()
-  }, [params.id, toast])
+  }, [id, toast])
 
   if (isLoading) {
     return (
@@ -105,9 +107,27 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-center text-2xl font-bold text-gray-800">
-                Detalhes da Garantia
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-center text-2xl font-bold text-gray-800">
+                  Detalhes da Garantia
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = window.location.href
+                    navigator.clipboard.writeText(url)
+                    toast({
+                      title: "URL copiada",
+                      description: "O link da garantia foi copiado para a área de transferência",
+                    })
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar Link
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6">
