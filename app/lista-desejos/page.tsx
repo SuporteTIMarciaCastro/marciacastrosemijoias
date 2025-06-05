@@ -170,10 +170,10 @@ export default function ListaDesejosPage() {
                         <TableCell>{item.jaComprou ? "Sim" : "Não"}</TableCell>
                         <TableCell>{item.lojaDestino}</TableCell>
                         <TableCell>
-                          {item.imagemBase64 ? (
+                          {item.imagemUrl ? (
                             <div className="relative h-16 w-16">
                               <Image
-                                src={item.imagemBase64 || "/placeholder.svg"}
+                                src={item.imagemUrl}
                                 alt={item.produto}
                                 fill
                                 className="object-cover rounded-md"

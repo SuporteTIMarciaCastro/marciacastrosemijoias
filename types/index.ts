@@ -7,10 +7,10 @@ export interface WishlistItem {
   produto: string
   jaComprou: boolean
   lojaDestino: string
-  imagemBase64: string | null
   descricao: string
+  imagemUrl?: string
+  status: "Pendente" | "Em produção" | "Concluído"
   data: string
-  status: 'Pendente' | 'Em produção' | 'Concluído'
   createdAt?: string
   updatedAt?: string
 }

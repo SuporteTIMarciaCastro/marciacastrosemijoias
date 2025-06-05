@@ -1,0 +1,76 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { google } from "googleapis"
+import { createReadStream } from "fs"
+import { writeFile } from "fs/promises"
+import { join } from "path"
+import { tmpdir } from "os"
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "urn:ietf:wg:oauth:2.0:oob",
+)
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+})
+
+const drive = google.drive({ version: "v3", auth: oauth2Client })
+
+export async function POST(request: NextRequest) {
+  try {
+    const formData = await request.formData()
+    const file = formData.get("file") as File
+
+    if (!file) {
+      return NextResponse.json({ error: "Nenhum arquivo foi enviado" }, { status: 400 })
+    }
+
+    // Criar um arquivo temporário
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    const tempFilePath = join(tmpdir(), file.name)
+    await writeFile(tempFilePath, buffer)
+
+    // Criar um stream de leitura do arquivo temporário
+    const fileStream = createReadStream(tempFilePath)
+
+    // Fazer upload para o Google Drive
+    const response = await drive.files.create({
+      requestBody: {
+        name: file.name,
+        parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
+      },
+      media: {
+        mimeType: file.type,
+        body: fileStream,
+      },
+    })
+
+    // Tornar o arquivo público
+    await drive.permissions.create({
+      fileId: response.data.id!,
+      requestBody: {
+        role: 'reader',
+        type: 'anyone',
+      },
+    })
+
+    // Obter o link público do arquivo
+    const fileDetails = await drive.files.get({
+      fileId: response.data.id!,
+      fields: 'webViewLink',
+    })
+
+    return NextResponse.json({
+      success: true,
+      fileId: response.data.id,
+      fileName: file.name,
+      message: "Arquivo enviado com sucesso!",
+      fileUrl: fileDetails.data.webViewLink,
+    })
+  } catch (error) {
+    console.error("Erro no upload:", error)
+    return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
+  }
+} 
