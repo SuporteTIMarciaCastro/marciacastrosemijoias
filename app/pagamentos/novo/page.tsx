@@ -59,7 +59,7 @@ export default function NovoPagamentoPage() {
     }
   }, [user, router])
 
-  const MAX_FILE_SIZE = 900 * 1024 // 900KB para dar margem de segurança
+  const MAX_FILE_SIZE = 4 * 1024 * 1024 // 4MB
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     const { name, value } = e.target
@@ -89,7 +89,7 @@ export default function NovoPagamentoPage() {
 
   const convertFileToBase64 = async (file: File): Promise<string> => {
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error('Arquivo muito grande. Tamanho máximo permitido: 900KB')
+      throw new Error('Arquivo muito grande. Tamanho máximo permitido: 4MB')
     }
 
     return new Promise((resolve, reject) => {
@@ -105,7 +105,7 @@ export default function NovoPagamentoPage() {
     if (files && files[0]) {
       const file = files[0]
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
+        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 4MB`)
         e.target.value = ''
         return
       }
@@ -216,7 +216,7 @@ export default function NovoPagamentoPage() {
                       onChange={handleFileChange}
                     />
                     <p className="text-sm text-muted-foreground mt-1">
-                      Aceita arquivos PDF ou imagens (máximo 900KB)
+                      Aceita arquivos PDF ou imagens (máximo 4MB)
                     </p>
                     {form.comprovantePagamento && (
                       <p className="text-sm text-green-600 mt-1">
@@ -264,7 +264,7 @@ export default function NovoPagamentoPage() {
                         onChange={handleFileChange}
                       />
                       <p className="text-sm text-muted-foreground mt-1">
-                        Aceita apenas arquivos PDF (máximo 900KB)
+                        Aceita apenas arquivos PDF (máximo 4MB)
                       </p>
                       {form.boletoPdf && (
                         <p className="text-sm text-green-600 mt-1">

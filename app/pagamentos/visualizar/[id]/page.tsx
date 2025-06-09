@@ -11,8 +11,10 @@ import type { Pagamento } from "@/lib/firebase/pagamentos"
 import Header from "@/components/header"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
+import { use } from "react"
 
-export default function VisualizarPagamentoPage({ params }: { params: { id: string } }) {
+export default function VisualizarPagamentoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [pagamento, setPagamento] = useState<Pagamento | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
@@ -37,31 +39,32 @@ export default function VisualizarPagamentoPage({ params }: { params: { id: stri
 
     const loadPagamento = async () => {
       try {
-        const data = await fetchPagamento(params.id)
+        const data = await fetchPagamento(id)
         if (data) {
           setPagamento(data)
         } else {
           toast({
-            title: "Erro",
-            description: "Pagamento não encontrado",
+            title: "Pagamento não encontrado",
+            description: "O pagamento solicitado não existe.",
             variant: "destructive",
           })
-          router.push("/pagamentos")
+          router.push("/dashboard")
         }
       } catch (error) {
+        console.error("Erro ao carregar pagamento:", error)
         toast({
           title: "Erro",
-          description: "Não foi possível carregar os dados do pagamento",
+          description: "Não foi possível carregar os detalhes do pagamento.",
           variant: "destructive",
         })
-        router.push("/pagamentos")
+        router.push("/dashboard")
       } finally {
         setIsLoading(false)
       }
     }
 
     loadPagamento()
-  }, [params.id, user, router, toast])
+  }, [id, user, router, toast])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
