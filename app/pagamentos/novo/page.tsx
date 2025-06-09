@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import Header from "@/components/header"
 import { addPagamento, Pagamento } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
+import { useAuth } from "@/context/auth-context"
 
 const tiposPagamento = [
   { value: "reembolso", label: "Reembolso" },
@@ -24,10 +25,12 @@ interface FormData {
   comprovantePagamento: File | undefined
   boletoPdf: File | undefined
   dataVencimento: string
+  formaPagamento: string
 }
 
 export default function NovoPagamentoPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [tipo, setTipo] = useState("reembolso")
   const [showBoletoPdf, setShowBoletoPdf] = useState(false)
@@ -40,7 +43,21 @@ export default function NovoPagamentoPage() {
     comprovantePagamento: undefined,
     boletoPdf: undefined,
     dataVencimento: "",
+    formaPagamento: "",
   })
+
+  useEffect(() => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
+
+    if (!user.permissions?.pagamentos?.adicionar) {
+      toast.error("Você não tem permissão para adicionar pagamentos")
+      router.push("/pagamentos")
+      return
+    }
+  }, [user, router])
 
   const MAX_FILE_SIZE = 900 * 1024 // 900KB para dar margem de segurança
 
@@ -52,59 +69,31 @@ export default function NovoPagamentoPage() {
     }
   }
 
-  const compressImage = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          let width = img.width
-          let height = img.height
-          
-          const maxDimension = 1200
-          if (width > maxDimension || height > maxDimension) {
-            if (width > height) {
-              height = (height * maxDimension) / width
-              width = maxDimension
-            } else {
-              width = (width * maxDimension) / height
-              height = maxDimension
-            }
-          }
+  const uploadFileToDrive = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append("file", file)
 
-          canvas.width = width
-          canvas.height = height
-          const ctx = canvas.getContext('2d')
-          ctx?.drawImage(img, 0, 0, width, height)
-          
-          const base64 = canvas.toDataURL('image/jpeg', 0.7)
-          resolve(base64)
-        }
-        img.onerror = reject
-        img.src = e.target?.result as string
-      }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
     })
+
+    if (!response.ok) {
+      throw new Error("Erro ao fazer upload do arquivo")
+    }
+
+    const result = await response.json()
+    return result.fileUrl
   }
 
   const convertFileToBase64 = async (file: File): Promise<string> => {
     if (file.size > MAX_FILE_SIZE) {
-      if (file.type.startsWith('image/')) {
-        try {
-          return await compressImage(file)
-        } catch (error) {
-          throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
-        }
-      } else {
-        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
-      }
+      throw new Error('Arquivo muito grande. Tamanho máximo permitido: 900KB')
     }
 
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
+      reader.onload = (e) => resolve(e.target?.result as string)
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
@@ -120,22 +109,13 @@ export default function NovoPagamentoPage() {
         return
       }
       setForm((prev) => ({ ...prev, [name]: file }))
-    } else {
-      setForm((prev) => ({ ...prev, [name]: undefined }))
     }
   }
 
-  const removeUndefinedFields = (obj: Omit<Pagamento, "id">): Omit<Pagamento, "id"> => {
-    const requiredFields = ['tipo', 'finalidade', 'justificativa', 'situacao']
-    const result = { ...obj }
-
-    Object.keys(result).forEach(key => {
-      if (!requiredFields.includes(key) && result[key as keyof typeof result] === undefined) {
-        delete result[key as keyof typeof result]
-      }
-    })
-
-    return result
+  function removeUndefinedFields<T extends object>(obj: T): T {
+    return Object.fromEntries(
+      Object.entries(obj).filter(([_, value]) => value !== undefined)
+    ) as T
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -143,13 +123,15 @@ export default function NovoPagamentoPage() {
     setIsLoading(true)
 
     try {
-      const comprovantePagamentoBase64 = form.comprovantePagamento instanceof File 
-        ? await convertFileToBase64(form.comprovantePagamento)
-        : undefined
+      let comprovantePagamentoUrl: string | undefined
+      if (form.comprovantePagamento instanceof File) {
+        comprovantePagamentoUrl = await uploadFileToDrive(form.comprovantePagamento)
+      }
 
-      const boletoPdfBase64 = form.boletoPdf instanceof File
-        ? await convertFileToBase64(form.boletoPdf)
-        : undefined
+      let boletoPdfUrl: string | undefined
+      if (form.boletoPdf instanceof File) {
+        boletoPdfUrl = await uploadFileToDrive(form.boletoPdf)
+      }
 
       const pagamentoData: Omit<Pagamento, "id"> = {
         tipo,
@@ -158,9 +140,10 @@ export default function NovoPagamentoPage() {
         justificativa: form.justificativa,
         dadosPagamento: form.dadosPagamento,
         situacao: "pendente",
-        comprovantePagamento: comprovantePagamentoBase64,
-        boletoPdf: boletoPdfBase64,
+        comprovantePagamento: comprovantePagamentoUrl,
+        boletoPdf: boletoPdfUrl,
         dataVencimento: form.dataVencimento,
+        formaPagamento: formaPagamento,
       }
 
       const cleanPagamentoData = removeUndefinedFields(pagamentoData)
@@ -175,6 +158,10 @@ export default function NovoPagamentoPage() {
     }
   }
 
+  if (!user) {
+    return null
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header title="Novo Pagamento" />
@@ -184,20 +171,21 @@ export default function NovoPagamentoPage() {
             <CardTitle>Cadastro de Pagamento</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Tipo de Pagamento</label>
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposPagamento.map((tp) => (
-                    <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Tipo de Pagamento</label>
+                <Select value={tipo} onValueChange={setTipo}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposPagamento.map((tp) => (
+                      <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               {tipo === "reembolso" && (
                 <>
                   <div>
@@ -229,6 +217,11 @@ export default function NovoPagamentoPage() {
                     <p className="text-sm text-muted-foreground mt-1">
                       Aceita arquivos PDF ou imagens (máximo 900KB)
                     </p>
+                    {form.comprovantePagamento && (
+                      <p className="text-sm text-green-600 mt-1">
+                        Arquivo selecionado: {form.comprovantePagamento.name}
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -260,11 +253,23 @@ export default function NovoPagamentoPage() {
                       <label className="block mb-1 font-medium">Dados para pagamento</label>
                       <Input name="dadosPagamento" placeholder={formaPagamento === "pix" ? "Chave PIX" : "Link para pagamento"} value={form.dadosPagamento} onChange={handleInputChange} />
                     </div>
-                  ) : null}
-                  {formaPagamento === "boleto" ? (
+                  ) : formaPagamento === "boleto" ? (
                     <div>
                       <label className="block mb-1 font-medium">Anexar boleto (PDF)</label>
-                      <Input name="boletoPdf" type="file" accept="application/pdf" onChange={handleFileChange} />
+                      <Input 
+                        name="boletoPdf" 
+                        type="file" 
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Aceita apenas arquivos PDF (máximo 900KB)
+                      </p>
+                      {form.boletoPdf && (
+                        <p className="text-sm text-green-600 mt-1">
+                          Arquivo selecionado: {form.boletoPdf.name}
+                        </p>
+                      )}
                     </div>
                   ) : null}
                 </>

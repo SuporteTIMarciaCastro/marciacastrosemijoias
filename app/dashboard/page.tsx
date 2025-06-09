@@ -7,6 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import Header from "@/components/header"
+import { PermissionKey } from "@/types/permissions"
+
+interface MenuItem {
+  title: string
+  path: string
+  permission: PermissionKey
+}
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -22,12 +29,16 @@ export default function DashboardPage() {
     return null
   }
 
-  const menuItems = [
-    { title: "Lista de Desejos", path: "/lista-desejos" },
-    { title: "Lista de Garantia", path: "/lista-garantia" },
-    { title: "Lista de Materiais", path: "/lista-solicitacoes" },
-    // { title: "Lista de Pagamentos", path: "/pagamentos" },
+  const menuItems: MenuItem[] = [
+    { title: "Lista de Desejos", path: "/lista-desejos", permission: "listaDesejos" },
+    { title: "Lista de Garantia", path: "/lista-garantia", permission: "listaGarantia" },
+    { title: "Lista de Materiais", path: "/lista-solicitacoes", permission: "listaMateriais" },
+    { title: "Lista de Pagamentos", path: "/pagamentos", permission: "pagamentos" },
   ]
+
+  const filteredMenuItems = menuItems.filter(item => 
+    user.permissions?.[item.permission]?.visualizarPage
+  )
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -41,7 +52,7 @@ export default function DashboardPage() {
               <CardDescription className="text-center">Escolha uma opção:</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {menuItems.map((item, index) => (
+              {filteredMenuItems.map((item, index) => (
                 <Button 
                   key={index} 
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" 

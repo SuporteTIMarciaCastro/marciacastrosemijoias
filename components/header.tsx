@@ -9,14 +9,21 @@ import { Menu, Moon, Sun } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useTheme } from "next-themes"
 import { Switch } from "@/components/ui/switch"
+import { PermissionKey } from "@/types/permissions"
 
 interface HeaderProps {
   title: string
 }
 
+interface MenuItem {
+  title: string
+  path: string
+  permission: PermissionKey | null
+}
+
 export default function Header({ title }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const router = useRouter()
   const { setTheme, theme } = useTheme()
 
@@ -25,13 +32,18 @@ export default function Header({ title }: HeaderProps) {
     router.push("/login")
   }
 
-  const menuItems = [
-    { title: "Menu Principal", path: "/dashboard" },
-    { title: "Lista de Desejos", path: "/lista-desejos" },
-    { title: "Lista de Garantia", path: "/lista-garantia" },
-    { title: "Lista de Materiais ", path: "/lista-solicitacoes" },
-    // { title: "Lista de Pagamentos", path: "/pagamentos" },
+  const menuItems: MenuItem[] = [
+    { title: "Menu Principal", path: "/dashboard", permission: null },
+    { title: "Lista de Desejos", path: "/lista-desejos", permission: "listaDesejos" },
+    { title: "Lista de Garantia", path: "/lista-garantia", permission: "listaGarantia" },
+    { title: "Lista de Materiais", path: "/lista-solicitacoes", permission: "listaMateriais" },
+    { title: "Lista de Pagamentos", path: "/pagamentos", permission: "pagamentos" },
   ]
+
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!item.permission) return true
+    return user?.permissions?.[item.permission]?.visualizarPage
+  })
 
   return (
     <header className="sticky top-0 z-10 border-b bg-background text-foreground shadow-sm">
@@ -50,7 +62,7 @@ export default function Header({ title }: HeaderProps) {
                   <Image src="/logo.png" alt="Marcia Castro Semijoias" width={100} height={100} priority />
                 </div>
                 <nav className="flex flex-col gap-2">
-                  {menuItems.map((item, index) => (
+                  {filteredMenuItems.map((item, index) => (
                     <Button
                       key={index}
                       variant="ghost"
@@ -85,7 +97,7 @@ export default function Header({ title }: HeaderProps) {
 
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-2">
-            {menuItems.map((item, index) => (
+            {filteredMenuItems.map((item, index) => (
               <Button key={index} variant="ghost" onClick={() => router.push(item.path)}>
                 {item.title}
               </Button>

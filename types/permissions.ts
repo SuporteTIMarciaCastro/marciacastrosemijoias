@@ -1,6 +1,9 @@
+export type PermissionKey = 'listaDesejos' | 'listaGarantia' | 'listaMateriais' | 'pagamentos';
+
 export interface UserPermissions {
   // Permissões de Lista de Desejos
   listaDesejos: {
+    visualizarPage: boolean;
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
@@ -9,6 +12,7 @@ export interface UserPermissions {
   
   // Permissões de Lista de Garantia
   listaGarantia: {
+    visualizarPage: boolean;
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
@@ -17,6 +21,7 @@ export interface UserPermissions {
   
   // Permissões de Lista de Materiais
   listaMateriais: {
+    visualizarPage: boolean;
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
@@ -25,6 +30,7 @@ export interface UserPermissions {
   
   // Permissões de Pagamentos
   pagamentos: {
+    visualizarPage: boolean;
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
