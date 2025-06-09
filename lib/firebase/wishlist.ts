@@ -9,6 +9,8 @@ export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...item,
+      data: new Date().toISOString(),
+      status: 'Pendente',
       createdAt: new Date().toISOString(),
     })
     return docRef.id

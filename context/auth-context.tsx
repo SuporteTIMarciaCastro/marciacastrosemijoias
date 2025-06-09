@@ -1,15 +1,21 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-
-interface User {
-  username: string
-}
+import { 
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from "firebase/auth"
+import { doc, getDoc } from "firebase/firestore"
+import { auth, db } from "../lib/firebase"
+import { User, UserPermissions } from "@/types/permissions"
 
 interface AuthContextType {
   user: User | null
-  login: (username: string, password: string) => Promise<void>
-  logout: () => void
+  loading: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -19,36 +25,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar se o usuário está logado ao carregar a página
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-    setLoading(false)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Busca as informações adicionais do usuário no Firestore
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User
+            setUser({
+              id: firebaseUser.uid,
+              email: firebaseUser.email!,
+              name: userData.name,
+              isAdmin: userData.isAdmin,
+              permissions: userData.permissions
+            })
+          } else {
+            throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.')
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados do usuário:', error)
+          setUser(null)
+          await signOut(auth)
+        }
+      } else {
+        setUser(null)
+      }
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [])
 
-  const login = async (username: string, password: string) => {
-    // Simulação de login - em produção, isso seria uma chamada para o Firebase Auth
-    if (username === "adm" && password === "marcia@2025") {
-      const user = { username }
-      setUser(user)
-      localStorage.setItem("user", JSON.stringify(user))
-      return Promise.resolve()
-    } else {
-      return Promise.reject(new Error("Credenciais inválidas"))
+  const login = async (email: string, password: string) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      const user = userCredential.user
+
+      // Busca o documento do usuário no Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid))
+      
+      if (!userDoc.exists()) {
+        throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.')
+      }
+
+      const userData = userDoc.data() as User
+      setUser({
+        id: user.uid,
+        email: user.email!,
+        name: userData.name,
+        isAdmin: userData.isAdmin,
+        permissions: userData.permissions
+      })
+    } catch (error: any) {
+      console.error('Erro no login:', error)
+      throw error
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
+  const logout = async () => {
+    try {
+      await signOut(auth)
+      setUser(null)
+    } catch (error) {
+      console.error('Erro no logout:', error)
+      throw error
+    }
   }
 
   if (loading) {
     return <div>Carregando...</div>
   }
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

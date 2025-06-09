@@ -8,9 +8,21 @@ import { useToast } from "@/components/ui/use-toast"
 import { fetchWarrantyItem } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import { StatusBadge } from "@/components/status-badge"
-import { Calendar, MapPin, User, Mail, Phone, FileText, Image as ImageIcon } from "lucide-react"
+import { Calendar, MapPin, User, Mail, Phone, FileText, Image as ImageIcon, Copy } from "lucide-react"
+import { use } from "react"
 
-export default function VisualizarGarantiaPage({ params }: { params: { id: string } }) {
+// Re-adicionando getGoogleDriveEmbedUrl para gerar a URL de imagem bruta
+const getGoogleDriveEmbedUrl = (url: string): string => {
+  const fileIdMatch = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/d\/([a-zA-Z0-9_-]+)/)
+  if (fileIdMatch && fileIdMatch[1]) {
+    // Usamos 'uc?id=' para obter o conteúdo bruto da imagem
+    return `https://drive.google.com/uc?id=${fileIdMatch[1]}`
+  }
+  return url // Retorna a URL original se o ID não for encontrado
+}
+
+export default function VisualizarGarantiaPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [item, setItem] = useState<WarrantyItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
@@ -18,8 +30,12 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
   useEffect(() => {
     const loadItem = async () => {
       try {
-        const data = await fetchWarrantyItem(params.id)
+        const data = await fetchWarrantyItem(id)
         setItem(data)
+        if (data?.imagemPecas) {
+          console.log("Valor de item.imagemPecas:", data.imagemPecas)
+          console.log("URLs de imagem divididas:", data.imagemPecas.split(","))
+        }
       } catch (error) {
         toast({
           title: "Erro",
@@ -32,7 +48,7 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
     }
 
     loadItem()
-  }, [params.id, toast])
+  }, [id, toast])
 
   if (isLoading) {
     return (
@@ -105,9 +121,27 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-center text-2xl font-bold text-gray-800">
-                Detalhes da Garantia
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-center text-2xl font-bold text-gray-800">
+                  Detalhes da Garantia
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const url = window.location.href
+                    navigator.clipboard.writeText(url)
+                    toast({
+                      title: "URL copiada",
+                      description: "O link da garantia foi copiado para a área de transferência",
+                    })
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar Link
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-6">
@@ -198,13 +232,28 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
                       <ImageIcon className="h-5 w-5" />
                       Imagem das Peças
                     </h3>
-                    <div className="relative h-64 w-full md:w-96 mx-auto">
-                      <Image
-                        src={item.imagemPecas}
-                        alt="Imagem das peças"
-                        fill
-                        className="object-contain rounded-lg"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {item.imagemPecas.split(",").map((url: string, index: number) => {
+                        return (
+                          <div key={index} className="space-y-2">
+                            <div className="relative h-64 w-full">
+                              <img
+                                src={`/api/image-proxy?url=${encodeURIComponent(getGoogleDriveEmbedUrl(url))}`}
+                                alt={`Imagem das peças ${index + 1}`}
+                                className="object-contain rounded-lg w-full h-full"
+                              />
+                            </div>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 break-all"
+                            >
+                              {url}
+                            </a>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -215,13 +264,16 @@ export default function VisualizarGarantiaPage({ params }: { params: { id: strin
                       <FileText className="h-5 w-5" />
                       Nota de Compra
                     </h3>
-                    <div className="relative h-64 w-full md:w-96 mx-auto">
-                      <Image
-                        src={item.notaCompra}
-                        alt="Nota de compra"
-                        fill
-                        className="object-contain rounded-lg"
-                      />
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      <a
+                        href={item.notaCompra}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 break-all"
+                      >
+                        {item.notaCompra}
+                      </a>
                     </div>
                   </div>
                 )}

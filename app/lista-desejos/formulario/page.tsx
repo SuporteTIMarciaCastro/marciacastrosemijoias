@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { addWishlistItem } from "@/lib/firebase/wishlist"
 import { CheckCircle2 } from "lucide-react"
+import { GoogleDriveUploader, UploadResult } from "@/google-drive-uploader-component/components/GoogleDriveUploader"
 
 export default function FormularioDesejoPage() {
   const [formData, setFormData] = useState({
@@ -24,8 +25,9 @@ export default function FormularioDesejoPage() {
     jaComprou: "Sim",
     lojaDestino: "",
     descricao: "",
+    imagemUrl: "",
   })
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
@@ -41,10 +43,10 @@ export default function FormularioDesejoPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      setImageFile(file)
+      setSelectedFile(file)
 
       // Criar preview da imagem
       const reader = new FileReader()
@@ -57,13 +59,22 @@ export default function FormularioDesejoPage() {
     }
   }
 
-  const convertImageToBase64 = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+  const uploadFileToDrive = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folderId", "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP") // ID da pasta da lista de desejos
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
     })
+
+    if (!response.ok) {
+      throw new Error("Erro ao fazer upload do arquivo")
+    }
+
+    const result = await response.json()
+    return result.fileUrl
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,15 +82,17 @@ export default function FormularioDesejoPage() {
     setIsSubmitting(true)
 
     try {
-      let imagemBase64 = null
-      if (imageFile) {
-        imagemBase64 = await convertImageToBase64(imageFile)
+      let imagemUrl = ""
+      if (selectedFile) {
+        imagemUrl = await uploadFileToDrive(selectedFile)
       }
 
       await addWishlistItem({
         ...formData,
+        imagemUrl,
         jaComprou: formData.jaComprou === "Sim",
-        imagemBase64,
+        status: "Pendente",
+        data: new Date().toISOString(),
       })
 
       toast({
@@ -87,7 +100,6 @@ export default function FormularioDesejoPage() {
         description: "Seu pedido foi enviado com sucesso!",
       })
 
-      // Mostrar mensagem de sucesso
       setIsSuccess(true)
     } catch (error) {
       toast({
@@ -101,7 +113,6 @@ export default function FormularioDesejoPage() {
   }
 
   const handleNewRequest = () => {
-    // Limpar formulário
     setFormData({
       nome: "",
       celular: "",
@@ -110,8 +121,9 @@ export default function FormularioDesejoPage() {
       jaComprou: "Sim",
       lojaDestino: "",
       descricao: "",
+      imagemUrl: "",
     })
-    setImageFile(null)
+    setSelectedFile(null)
     setImagePreview(null)
     setIsSuccess(false)
   }
@@ -239,19 +251,27 @@ export default function FormularioDesejoPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="imagem">Imagem do Produto:</Label>
-                    <Input id="imagem" type="file" accept="image/*" onChange={handleImageChange} />
-                    {imagePreview && (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500 mb-1">Preview:</p>
-                        <Image
-                          src={imagePreview || "/placeholder.svg"}
-                          alt="Preview"
-                          width={100}
-                          height={100}
-                          className="object-cover rounded-md"
-                        />
-                      </div>
-                    )}
+                    <div className="flex flex-col gap-4">
+                      <Input
+                        id="imagem"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="cursor-pointer"
+                      />
+                      {imagePreview && (
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-500 mb-1">Preview:</p>
+                          <Image
+                            src={imagePreview}
+                            alt="Preview"
+                            width={200}
+                            height={200}
+                            className="object-cover rounded-md"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2">

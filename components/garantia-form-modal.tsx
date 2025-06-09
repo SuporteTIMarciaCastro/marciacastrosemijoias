@@ -33,8 +33,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     email: "",
     descricaoPecas: "",
   })
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [notaCompraFile, setNotaCompraFile] = useState<File | null>(null)
+  const [notaCompraPreview, setNotaCompraPreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -60,7 +62,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
             })
 
             if (item.imagemPecas) {
-              setImagePreview(item.imagemPecas)
+              setImagePreviews(Array.isArray(item.imagemPecas) ? item.imagemPecas : [item.imagemPecas])
             }
           }
         })
@@ -94,8 +96,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
       email: "",
       descricaoPecas: "",
     })
-    setImageFile(null)
-    setImagePreview(null)
+    setImageFiles([])
+    setImagePreviews([])
+    setNotaCompraFile(null)
+    setNotaCompraPreview(null)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -108,28 +112,56 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      setImageFiles(prev => [...prev, ...files])
+
+      // Criar previews das imagens
+      files.forEach(file => {
+        const reader = new FileReader()
+        reader.onload = (event: ProgressEvent<FileReader>) => {
+          const result = event.target?.result
+          if (result) {
+            setImagePreviews(prev => [...prev, result as string])
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    }
+  }
+
+  const handleNotaCompraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      setImageFile(file)
+      setNotaCompraFile(file)
 
-      // Criar preview da imagem
+      // Criar preview do documento
       const reader = new FileReader()
       reader.onload = (event) => {
         if (event.target?.result) {
-          setImagePreview(event.target.result as string)
+          setNotaCompraPreview(event.target.result as string)
         }
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const convertImageToBase64 = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+  const uploadFileToDrive = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folderId", "1-NZHEq0_4bKpL99KN2K-u5eQTxJ7BXfn")
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
     })
+
+    if (!response.ok) {
+      throw new Error("Erro ao fazer upload do arquivo")
+    }
+
+    const result = await response.json()
+    return result.fileUrl
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,25 +169,30 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     setIsSubmitting(true)
 
     try {
-      let imagemPecas = imagePreview
-      if (imageFile) {
-        imagemPecas = await convertImageToBase64(imageFile)
+      // Upload das imagens
+      const imagemPecasUrls = await Promise.all(
+        imageFiles.map(file => uploadFileToDrive(file))
+      )
+
+      // Upload da nota de compra
+      let notaCompraUrl = ""
+      if (notaCompraFile) {
+        notaCompraUrl = await uploadFileToDrive(notaCompraFile)
       }
 
       const dataToSave = {
         ...formData,
-        imagemPecas,
+        imagemPecas: imagemPecasUrls.join(","), // Converte array para string separada por vírgula
+        notaCompra: notaCompraUrl,
       }
 
       if (itemId) {
-        // Editar existente
         await updateWarrantyItem(itemId, dataToSave)
         toast({
           title: "Sucesso",
           description: "Garantia atualizada com sucesso!",
         })
       } else {
-        // Adicionar novo
         await addWarrantyItem(dataToSave)
         toast({
           title: "Sucesso",
@@ -166,6 +203,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
       onSuccess()
       onClose()
     } catch (error) {
+      console.error("Erro ao salvar garantia:", error)
       toast({
         title: "Erro",
         description: `Não foi possível ${itemId ? "atualizar" : "adicionar"} a garantia. Tente novamente.`,
@@ -277,20 +315,52 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
             <div className="space-y-2">
               <Label htmlFor="notaCompra">Nota de Compra</Label>
-              <Input id="notaCompra" name="notaCompra" type="file" accept="image/*,.pdf" onChange={handleInputChange} />
+              <Input 
+                id="notaCompra" 
+                type="file" 
+                accept="image/*,.pdf" 
+                onChange={handleNotaCompraChange} 
+              />
+              <p className="text-sm text-gray-500">Apenas arquivos PDF ou imagem. Tamanho máximo: 900KB</p>
+              {notaCompraPreview && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-500 mb-1">Preview:</p>
+                  {notaCompraFile?.type === "application/pdf" ? (
+                    <p className="text-sm text-green-600">PDF selecionado: {notaCompraFile.name}</p>
+                  ) : (
+                    <img
+                      src={notaCompraPreview}
+                      alt="Preview da nota"
+                      className="max-w-[200px] max-h-[200px] object-cover rounded-md"
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="imagemPecas">Imagem das Peças para Avaliação</Label>
-              <Input id="imagemPecas" type="file" accept="image/*" onChange={handleImageChange} />
-              {imagePreview && (
+              <Input 
+                id="imagemPecas" 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                multiple 
+              />
+              <p className="text-sm text-gray-500">Selecione uma ou mais imagens. Tamanho máximo por arquivo: 900KB</p>
+              {imagePreviews.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-sm text-gray-500 mb-1">Preview:</p>
-                  <img
-                    src={imagePreview || "/placeholder.svg"}
-                    alt="Preview"
-                    className="max-w-[200px] max-h-[200px] object-cover rounded-md"
-                  />
+                  <p className="text-sm text-gray-500 mb-1">Previews:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {imagePreviews.map((preview, index) => (
+                      <img
+                        key={index}
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        className="max-w-[200px] max-h-[200px] object-cover rounded-md"
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

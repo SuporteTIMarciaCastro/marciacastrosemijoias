@@ -18,7 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { MoreHorizontal, Copy, ExternalLink } from "lucide-react"
+import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
@@ -53,6 +54,10 @@ export default function ListaDesejosPage() {
   }, [user, router, toast])
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja remover este item da lista de desejos?")) {
+      return
+    }
+
     try {
       await deleteWishlistItem(id)
       setWishlistItems(wishlistItems.filter((item) => item.id !== id))
@@ -67,6 +72,15 @@ export default function ListaDesejosPage() {
         variant: "destructive",
       })
     }
+  }
+
+  const handleCopyFormUrl = () => {
+    const formUrl = `${window.location.origin}/lista-desejos/formulario`
+    navigator.clipboard.writeText(formUrl)
+    toast({
+      title: "URL copiada",
+      description: "O link do formulário foi copiado para a área de transferência",
+    })
   }
 
   const filteredItems = wishlistItems.filter(
@@ -95,10 +109,24 @@ export default function ListaDesejosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-xs"
               />
-              {/*   <Button onClick={() => router.push("/lista-desejos/novo")}>Adicionar Novo</Button>  */}
-              <Button variant="outline" onClick={() => router.push("/lista-desejos/formulario")}>
-                Formulário para Cliente
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Formulário para Cliente
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => router.push("/lista-desejos/formulario")}>
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Abrir Formulário
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleCopyFormUrl}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copiar URL
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </CardHeader>
           <CardContent>
@@ -142,10 +170,10 @@ export default function ListaDesejosPage() {
                         <TableCell>{item.jaComprou ? "Sim" : "Não"}</TableCell>
                         <TableCell>{item.lojaDestino}</TableCell>
                         <TableCell>
-                          {item.imagemBase64 ? (
+                          {item.imagemUrl ? (
                             <div className="relative h-16 w-16">
                               <Image
-                                src={item.imagemBase64 || "/placeholder.svg"}
+                                src={item.imagemUrl}
                                 alt={item.produto}
                                 fill
                                 className="object-cover rounded-md"
@@ -157,28 +185,13 @@ export default function ListaDesejosPage() {
                         </TableCell>
                         <TableCell>{item.descricao}</TableCell>
                         <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Abrir menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/visualizar/${item.id}`)}>
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/lista-desejos/editar/${item.id}`)}>
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => handleDelete(item.id)}
-                              >
-                                Remover
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <ActionsMenu
+                            viewPath="/lista-desejos/visualizar"
+                            editPath="/lista-desejos/editar"
+                            itemId={item.id}
+                            onDelete={() => handleDelete(item.id)}
+                            pageType="listaDesejos"
+                          />
                         </TableCell>
                       </TableRow>
                     ))

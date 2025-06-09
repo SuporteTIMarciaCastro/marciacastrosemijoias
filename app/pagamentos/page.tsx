@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import Header from "@/components/header"
 import { fetchPagamentos, deletePagamento, Pagamento } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
+import { useAuth } from "@/context/auth-context"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,10 +38,15 @@ export default function ListaPagamentosPage() {
   const [pagamentoToDelete, setPagamentoToDelete] = useState<Pagamento | null>(null)
   const [pagamentoToEdit, setPagamentoToEdit] = useState<string | null>(null)
   const router = useRouter()
+  const { user } = useAuth()
 
   useEffect(() => {
+    if (!user) {
+      router.push("/login")
+      return
+    }
     loadPagamentos()
-  }, [])
+  }, [user, router])
 
   async function loadPagamentos() {
     setIsLoading(true)
@@ -91,6 +97,15 @@ export default function ListaPagamentosPage() {
     router.push(`/pagamentos/visualizar/${id}`)
   }
 
+  if (!user) {
+    return null
+  }
+
+  const canAdd = user.permissions?.pagamentos?.adicionar
+  const canEdit = user.permissions?.pagamentos?.editar
+  const canDelete = user.permissions?.pagamentos?.remover
+  const canView = user.permissions?.pagamentos?.visualizar
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header title="Solicitações de Pagamentos" />
@@ -105,7 +120,9 @@ export default function ListaPagamentosPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-xs"
               />
-              <Button onClick={() => router.push("/pagamentos/novo")}>Adicionar Pagamento</Button>
+              {canAdd && (
+                <Button onClick={() => router.push("/pagamentos/novo")}>Adicionar Pagamento</Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -157,21 +174,27 @@ export default function ListaPagamentosPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleView(p.id!)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Visualizar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setPagamentoToEdit(p.id!)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => setPagamentoToDelete(p)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Remover
-                              </DropdownMenuItem>
+                              {canView && (
+                                <DropdownMenuItem onClick={() => handleView(p.id!)}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  Visualizar
+                                </DropdownMenuItem>
+                              )}
+                              {canEdit && (
+                                <DropdownMenuItem onClick={() => setPagamentoToEdit(p.id!)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                              )}
+                              {canDelete && (
+                                <DropdownMenuItem 
+                                  onClick={() => setPagamentoToDelete(p)}
+                                  className="text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Remover
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

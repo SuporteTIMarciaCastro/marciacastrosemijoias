@@ -14,6 +14,7 @@ export interface Pagamento {
   comprovantePagamento?: string
   comprovanteDevolucao?: string
   boletoPdf?: string
+  formaPagamento?: string
   createdAt?: string
   updatedAt?: string
 }

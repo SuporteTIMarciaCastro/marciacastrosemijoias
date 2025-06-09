@@ -11,8 +11,10 @@ import type { Pagamento } from "@/lib/firebase/pagamentos"
 import Header from "@/components/header"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
+import { use } from "react"
 
-export default function VisualizarPagamentoPage({ params }: { params: { id: string } }) {
+export default function VisualizarPagamentoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [pagamento, setPagamento] = useState<Pagamento | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
@@ -25,33 +27,44 @@ export default function VisualizarPagamentoPage({ params }: { params: { id: stri
       return
     }
 
+    if (!user.permissions?.pagamentos?.visualizar) {
+      toast({
+        title: "Erro",
+        description: "Você não tem permissão para visualizar pagamentos",
+        variant: "destructive",
+      })
+      router.push("/dashboard")
+      return
+    }
+
     const loadPagamento = async () => {
       try {
-        const data = await fetchPagamento(params.id)
+        const data = await fetchPagamento(id)
         if (data) {
           setPagamento(data)
         } else {
           toast({
-            title: "Erro",
-            description: "Pagamento não encontrado",
+            title: "Pagamento não encontrado",
+            description: "O pagamento solicitado não existe.",
             variant: "destructive",
           })
-          router.push("/pagamentos")
+          router.push("/dashboard")
         }
       } catch (error) {
+        console.error("Erro ao carregar pagamento:", error)
         toast({
           title: "Erro",
-          description: "Não foi possível carregar os dados do pagamento",
+          description: "Não foi possível carregar os detalhes do pagamento.",
           variant: "destructive",
         })
-        router.push("/pagamentos")
+        router.push("/dashboard")
       } finally {
         setIsLoading(false)
       }
     }
 
     loadPagamento()
-  }, [params.id, user, router, toast])
+  }, [id, user, router, toast])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -118,6 +131,12 @@ export default function VisualizarPagamentoPage({ params }: { params: { id: stri
                   <h3 className="font-semibold mb-2">Data</h3>
                   <p>{pagamento.data ? new Date(pagamento.data).toLocaleDateString('pt-BR') : '-'}</p>
                 </div>
+                {pagamento.tipo === "Agendado" && pagamento.formaPagamento && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Forma de Pagamento</h3>
+                    <p className="capitalize">{pagamento.formaPagamento}</p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -132,81 +151,80 @@ export default function VisualizarPagamentoPage({ params }: { params: { id: stri
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-sm text-muted-foreground">Dados para pagamento</h3>
-                  {pagamento.tipo === "Agendado" && pagamento.dadosPagamento?.toLowerCase().includes("http") ? (
-                    <a 
-                      href={pagamento.dadosPagamento} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline mt-1 block"
-                    >
-                      Clique aqui para acessar o link de pagamento
-                    </a>
-                  ) : (
-                    <p className="mt-1">{pagamento.dadosPagamento || "-"}</p>
-                  )}
-                </div>
-                {pagamento.dataVencimento && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Data de Vencimento</h3>
-                    <p>{pagamento.dataVencimento ? new Date(pagamento.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</p>
-                  </div>
+              <div>
+                <h3 className="font-medium text-sm text-muted-foreground">Dados para pagamento</h3>
+                {pagamento.tipo === "Agendado" && pagamento.dadosPagamento?.toLowerCase().includes("http") ? (
+                  <a 
+                    href={pagamento.dadosPagamento} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline mt-1 block"
+                  >
+                    Clique aqui para acessar o link de pagamento
+                  </a>
+                ) : (
+                  <p className="mt-1">{pagamento.dadosPagamento || "-"}</p>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {pagamento.comprovantePagamento && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Comprovante de Pagamento</h3>
-                    {pagamento.comprovantePagamento.startsWith('data:image/') ? (
-                      <div className="mt-2">
-                        <img 
-                          src={pagamento.comprovantePagamento} 
-                          alt="Comprovante de pagamento" 
-                          className="max-w-full h-auto rounded-lg border"
-                        />
-                      </div>
-                    ) : (
-                      <a 
-                        href={pagamento.comprovantePagamento} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:underline"
-                      >
-                        Visualizar comprovante
-                      </a>
-                    )}
-                  </div>
-                )}
-                {pagamento.comprovanteDevolucao && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Comprovante de Devolução</h3>
+              {pagamento.tipo === "Agendado" && pagamento.formaPagamento === "boleto" && pagamento.boletoPdf && (
+                <div>
+                  <h3 className="font-semibold mb-2">Boleto</h3>
+                  <a 
+                    href={pagamento.boletoPdf} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Visualizar boleto
+                  </a>
+                </div>
+              )}
+
+              {pagamento.dataVencimento && (
+                <div>
+                  <h3 className="font-semibold mb-2">Data de Vencimento</h3>
+                  <p>{pagamento.dataVencimento ? new Date(pagamento.dataVencimento + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</p>
+                </div>
+              )}
+
+              {pagamento.comprovantePagamento && (
+                <div>
+                  <h3 className="font-semibold mb-2">Comprovante de Pagamento</h3>
+                  {pagamento.comprovantePagamento.startsWith('data:image/') ? (
+                    <div className="mt-2">
+                      <img 
+                        src={pagamento.comprovantePagamento} 
+                        alt="Comprovante de pagamento" 
+                        className="max-w-full h-auto rounded-lg border"
+                      />
+                    </div>
+                  ) : (
                     <a 
-                      href={pagamento.comprovanteDevolucao} 
+                      href={pagamento.comprovantePagamento} 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:underline"
                     >
                       Visualizar comprovante
                     </a>
-                  </div>
-                )}
-                {pagamento.boletoPdf && (
-                  <div>
-                    <h3 className="font-semibold mb-2">Boleto</h3>
-                    <a 
-                      href={pagamento.boletoPdf} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      Visualizar boleto
-                    </a>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
+
+              {pagamento.comprovanteDevolucao && (
+                <div>
+                  <h3 className="font-semibold mb-2">Comprovante de Devolução</h3>
+                  <a 
+                    href={pagamento.comprovanteDevolucao} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    Visualizar comprovante
+                  </a>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

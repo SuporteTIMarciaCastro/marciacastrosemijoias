@@ -16,9 +16,9 @@ const tiposPagamento = [
 ]
 
 const situacoes = [
-  { value: "pendente", label: "Pendente" },
-  { value: "autorizado", label: "Autorizado" },
-  { value: "rejeitado", label: "Rejeitado" },
+  { value: "pendente", label: "Pendente", color: "text-yellow-600" },
+  { value: "autorizado", label: "Autorizado", color: "text-green-600" },
+  { value: "rejeitado", label: "Rejeitado", color: "text-red-600" },
 ]
 
 interface FormData {
@@ -57,7 +57,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     dataVencimento: "",
   })
 
-  const MAX_FILE_SIZE = 900 * 1024 // 900KB para dar margem de segurança
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
   useEffect(() => {
     if (isOpen && pagamentoId) {
@@ -70,6 +70,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
       const pagamento = await fetchPagamento(pagamentoId!)
       if (pagamento) {
         setTipo(pagamento.tipo)
+        setFormaPagamento(pagamento.formaPagamento || "")
         setForm({
           finalidade: pagamento.finalidade,
           data: pagamento.data || "",
@@ -142,10 +143,10 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
         try {
           return await compressImage(file)
         } catch (error) {
-          throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
+          throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
         }
       } else {
-        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
+        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
       }
     }
 
@@ -162,7 +163,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     if (files && files[0]) {
       const file = files[0]
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 900KB`)
+        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
         e.target.value = ''
         return
       }
@@ -185,18 +186,38 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     return result
   }
 
+  const uploadFileToDrive = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folderId", "1i55quYEmytJU_AhBs3b2AnZVAo3YAnlT") // ID da pasta de pagamentos
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error("Erro ao fazer upload do arquivo")
+    }
+
+    const result = await response.json()
+    return result.fileUrl
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const comprovantePagamentoBase64 = form.comprovantePagamento instanceof File 
-        ? await convertFileToBase64(form.comprovantePagamento)
-        : form.comprovantePagamento
+      let comprovantePagamentoUrl: string | undefined
+      if (form.comprovantePagamento instanceof File) {
+        comprovantePagamentoUrl = await uploadFileToDrive(form.comprovantePagamento)
+      }
 
-      const comprovanteDevolucaoBase64 = form.comprovanteDevolucao instanceof File
-        ? await convertFileToBase64(form.comprovanteDevolucao)
-        : form.comprovanteDevolucao
+      let comprovanteDevolucaoUrl: string | undefined
+      if (form.comprovanteDevolucao instanceof File) {
+        comprovanteDevolucaoUrl = await uploadFileToDrive(form.comprovanteDevolucao)
+      }
 
       const boletoPdfBase64 = form.boletoPdf instanceof File
         ? await convertFileToBase64(form.boletoPdf)
@@ -209,8 +230,8 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
         justificativa: form.justificativa,
         dadosPagamento: form.dadosPagamento,
         situacao: form.situacao,
-        comprovantePagamento: comprovantePagamentoBase64,
-        comprovanteDevolucao: comprovanteDevolucaoBase64,
+        comprovantePagamento: comprovantePagamentoUrl,
+        comprovanteDevolucao: comprovanteDevolucaoUrl,
         boletoPdf: boletoPdfBase64,
         dataVencimento: form.dataVencimento,
       }
@@ -241,16 +262,9 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
         <div className="mt-4">
           <div className="mb-4">
             <label className="block mb-1 font-medium">Tipo de Pagamento</label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposPagamento.map((tp) => (
-                  <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+              <span className="text-muted-foreground">{tiposPagamento.find(tp => tp.value === tipo)?.label}</span>
+            </div>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             {tipo === "reembolso" && (
@@ -288,23 +302,75 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
                   <p className="text-sm text-muted-foreground mt-1">
                     Aceita arquivos PDF ou imagens (máximo 900KB)
                   </p>
+                  {form.comprovantePagamento && (
+                    <div className="mt-1">
+                      {form.comprovantePagamento instanceof File ? (
+                        <p className="text-sm text-green-600">
+                          Arquivo selecionado: {form.comprovantePagamento.name}
+                        </p>
+                      ) : (
+                        <a
+                          href={form.comprovantePagamento}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          Ver comprovante no Google Drive
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Situação</label>
                   <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a situação" />
+                      <SelectValue placeholder="Selecione a situação">
+                        {form.situacao && (
+                          <span className={situacoes.find(s => s.value === form.situacao)?.color}>
+                            {situacoes.find(s => s.value === form.situacao)?.label}
+                          </span>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {situacoes.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        <SelectItem key={s.value} value={s.value} className={s.color}>
+                          {s.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Comprovante de devolução</label>
-                  <Input name="comprovanteDevolucao" type="file" onChange={handleFileChange} />
+                  <Input 
+                    name="comprovanteDevolucao" 
+                    type="file" 
+                    accept="image/*,.pdf"
+                    onChange={handleFileChange}
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Aceita arquivos PDF ou imagens (máximo 900KB)
+                  </p>
+                  {form.comprovanteDevolucao && (
+                    <div className="mt-1">
+                      {form.comprovanteDevolucao instanceof File ? (
+                        <p className="text-sm text-green-600">
+                          Arquivo selecionado: {form.comprovanteDevolucao.name}
+                        </p>
+                      ) : (
+                        <a
+                          href={form.comprovanteDevolucao}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          Ver comprovante de devolução no Google Drive
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -312,16 +378,9 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
               <>
                 <div>
                   <label className="block mb-1 font-medium">Forma de Pagamento</label>
-                  <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a forma de pagamento" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="boleto">Boleto</SelectItem>
-                      <SelectItem value="pix">PIX</SelectItem>
-                      <SelectItem value="cartao">Cartão</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                    <span className="text-muted-foreground capitalize">{formaPagamento}</span>
+                  </div>
                 </div>
                 <div>
                   <label className="block mb-1 font-medium">Finalidade do pagamento</label>
@@ -342,20 +401,86 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
                   </div>
                 ) : null}
                 {formaPagamento === "boleto" ? (
-                  <div>
-                    <label className="block mb-1 font-medium">Anexar boleto (PDF)</label>
-                    <Input name="boletoPdf" type="file" accept="application/pdf" onChange={handleFileChange} />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block mb-1 font-medium">Anexar boleto (PDF)</label>
+                      <Input 
+                        name="boletoPdf" 
+                        type="file" 
+                        accept="application/pdf"
+                        onChange={handleFileChange}
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Aceita apenas arquivos PDF (máximo 900KB)
+                      </p>
+                      {form.boletoPdf && (
+                        <div className="mt-1">
+                          {form.boletoPdf instanceof File ? (
+                            <p className="text-sm text-green-600">
+                              Arquivo selecionado: {form.boletoPdf.name}
+                            </p>
+                          ) : (
+                            <a
+                              href={form.boletoPdf}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              Ver boleto no Google Drive
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block mb-1 font-medium">Comprovante de pagamento</label>
+                      <Input 
+                        name="comprovantePagamento" 
+                        type="file" 
+                        accept="image/*,.pdf"
+                        onChange={handleFileChange}
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Aceita arquivos PDF ou imagens (máximo 900KB)
+                      </p>
+                      {form.comprovantePagamento && (
+                        <div className="mt-1">
+                          {form.comprovantePagamento instanceof File ? (
+                            <p className="text-sm text-green-600">
+                              Arquivo selecionado: {form.comprovantePagamento.name}
+                            </p>
+                          ) : (
+                            <a
+                              href={form.comprovantePagamento}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              Ver comprovante no Google Drive
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 ) : null}
                 <div>
                   <label className="block mb-1 font-medium">Situação</label>
                   <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a situação" />
+                      <SelectValue placeholder="Selecione a situação">
+                        {form.situacao && (
+                          <span className={situacoes.find(s => s.value === form.situacao)?.color}>
+                            {situacoes.find(s => s.value === form.situacao)?.label}
+                          </span>
+                        )}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {situacoes.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        <SelectItem key={s.value} value={s.value} className={s.color}>
+                          {s.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

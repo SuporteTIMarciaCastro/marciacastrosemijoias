@@ -10,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/context/auth-context"
 import { toast } from "@/components/ui/use-toast"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
@@ -23,21 +25,61 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Verificação simples para as credenciais fornecidas
-      if (username === "adm" && password === "marcia@2025") {
-        await login(username, password)
-        router.push("/dashboard")
-      } else {
-        toast({
-          title: "Erro de autenticação",
-          description: "Usuário ou senha incorretos",
-          variant: "destructive",
-        })
+      // Primeiro, tenta autenticar com o Firebase
+      await signInWithEmailAndPassword(auth, email, password)
+      
+      // Se a autenticação for bem-sucedida, faz o login no contexto da aplicação
+      await login(email, password)
+      
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo ao sistema!",
+      })
+      
+      router.push("/dashboard")
+    } catch (error: any) {
+      let errorMessage = "Ocorreu um erro ao fazer login"
+      
+      // Adicionando log para debug
+      console.log('Código do erro:', error.code)
+      console.log('Erro completo:', error)
+      
+      // Tratamento específico dos erros do Firebase
+      switch (error.code) {
+        case 'auth/invalid-email':
+          errorMessage = "O email informado é inválido"
+          break
+        case 'auth/user-disabled':
+          errorMessage = "Esta conta foi desativada"
+          break
+        case 'auth/user-not-found':
+          errorMessage = "Não existe uma conta com este email"
+          break
+        case 'auth/wrong-password':
+          errorMessage = "Senha incorreta"
+          break
+        case 'auth/invalid-credential':
+          // Verifica se o email está em um formato válido
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+          if (!emailRegex.test(email)) {
+            errorMessage = "O formato do email é inválido"
+          } else {
+            errorMessage = "Email ou senha incorretos"
+          }
+          break
+        case 'auth/too-many-requests':
+          errorMessage = "Muitas tentativas de login. Tente novamente mais tarde"
+          break
+        case 'auth/network-request-failed':
+          errorMessage = "Erro de conexão. Verifique sua internet"
+          break
+        default:
+          console.error('Erro de autenticação:', error)
       }
-    } catch (error) {
+
       toast({
         title: "Erro de autenticação",
-        description: "Ocorreu um erro ao fazer login",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -59,10 +101,11 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
-                id="username"
-                placeholder="Usuário"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
@@ -78,7 +121,11 @@ export default function LoginPage() {
                 className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
               />
             </div>
-            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" disabled={isLoading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" 
+              disabled={isLoading}
+            >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
