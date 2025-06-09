@@ -7,11 +7,23 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWishlistItemById } from "@/lib/firebase/wishlist"
+import { fetchWishlistItem } from "@/lib/firebase/wishlist"
 import type { WishlistItem } from "@/types"
 import Header from "@/components/header"
+import { use } from "react"
 
-export default function VisualizarDesejoPage({ params }: { params: { id: string } }) {
+// Re-adicionando getGoogleDriveEmbedUrl para gerar a URL de imagem bruta
+const getGoogleDriveEmbedUrl = (url: string): string => {
+  const fileIdMatch = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/d\/([a-zA-Z0-9_-]+)/)
+  if (fileIdMatch && fileIdMatch[1]) {
+    // Usamos 'uc?id=' para obter o conteúdo bruto da imagem
+    return `https://drive.google.com/uc?id=${fileIdMatch[1]}`
+  }
+  return url // Retorna a URL original se o ID não for encontrado
+}
+
+export default function VisualizarDesejoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [item, setItem] = useState<WishlistItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
@@ -26,7 +38,7 @@ export default function VisualizarDesejoPage({ params }: { params: { id: string 
 
     const loadItem = async () => {
       try {
-        const data = await fetchWishlistItemById(params.id)
+        const data = await fetchWishlistItem(id)
         setItem(data)
       } catch (error) {
         toast({
@@ -40,7 +52,7 @@ export default function VisualizarDesejoPage({ params }: { params: { id: string 
     }
 
     loadItem()
-  }, [params.id, user, router, toast])
+  }, [id, user, router, toast])
 
   if (!user) {
     return null
@@ -88,7 +100,7 @@ export default function VisualizarDesejoPage({ params }: { params: { id: string 
               <Button variant="outline" onClick={() => router.push("/lista-desejos")}>
                 Voltar
               </Button>
-              <Button onClick={() => router.push(`/lista-desejos/editar/${params.id}`)}>
+              <Button onClick={() => router.push(`/lista-desejos/editar/${id}`)}>
                 Editar
               </Button>
             </div>
@@ -119,17 +131,25 @@ export default function VisualizarDesejoPage({ params }: { params: { id: string 
                 <p className="text-gray-600">{item.descricao}</p>
               </div>
 
-              {item.imagemBase64 && (
+              {item.imagemUrl && (
                 <div>
                   <h3 className="font-semibold mb-2">Imagem</h3>
                   <div className="relative h-64 w-64">
                     <Image
-                      src={item.imagemBase64}
+                      src={`/api/image-proxy?url=${encodeURIComponent(getGoogleDriveEmbedUrl(item.imagemUrl))}`}
                       alt={item.produto}
                       fill
-                      className="object-cover rounded-lg"
+                      className="object-contain rounded-lg"
                     />
                   </div>
+                  <a
+                    href={item.imagemUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 break-all"
+                  >
+                    {item.imagemUrl}
+                  </a>
                 </div>
               )}
             </div>

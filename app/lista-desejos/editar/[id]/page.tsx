@@ -14,8 +14,20 @@ import { useToast } from "@/components/ui/use-toast"
 import { fetchWishlistItemById, updateWishlistItem } from "@/lib/firebase/wishlist"
 import type { WishlistItem } from "@/types"
 import Header from "@/components/header"
+import { use } from "react"
 
-export default function EditarDesejoPage({ params }: { params: { id: string } }) {
+// Re-adicionando getGoogleDriveEmbedUrl para gerar a URL de imagem bruta
+const getGoogleDriveEmbedUrl = (url: string): string => {
+  const fileIdMatch = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/d\/([a-zA-Z0-9_-]+)/)
+  if (fileIdMatch && fileIdMatch[1]) {
+    // Usamos 'uc?id=' para obter o conteúdo bruto da imagem
+    return `https://drive.google.com/uc?id=${fileIdMatch[1]}`
+  }
+  return url // Retorna a URL original se o ID não for encontrado
+}
+
+export default function EditarDesejoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const [item, setItem] = useState<WishlistItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -31,7 +43,7 @@ export default function EditarDesejoPage({ params }: { params: { id: string } })
 
     const loadItem = async () => {
       try {
-        const data = await fetchWishlistItemById(params.id)
+        const data = await fetchWishlistItemById(id)
         setItem(data)
       } catch (error) {
         toast({
@@ -45,7 +57,7 @@ export default function EditarDesejoPage({ params }: { params: { id: string } })
     }
 
     loadItem()
-  }, [params.id, user, router, toast])
+  }, [id, user, router, toast])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +65,7 @@ export default function EditarDesejoPage({ params }: { params: { id: string } })
 
     setIsSaving(true)
     try {
-      await updateWishlistItem(params.id, item)
+      await updateWishlistItem(id, item)
       toast({
         title: "Sucesso",
         description: "Item atualizado com sucesso",
@@ -192,23 +204,31 @@ export default function EditarDesejoPage({ params }: { params: { id: string } })
                 />
               </div>
 
-              {item.imagemBase64 && (
+              {item.imagemUrl && (
                 <div className="space-y-2">
                   <Label>Imagem Atual</Label>
                   <div className="relative h-64 w-64">
                     <Image
-                      src={item.imagemBase64}
-                      alt={item.produto}
+                      src={`/api/image-proxy?url=${encodeURIComponent(getGoogleDriveEmbedUrl(item.imagemUrl))}`}
+                      alt="Imagem do produto"
                       fill
-                      className="object-cover rounded-lg"
+                      className="object-contain rounded-lg"
                     />
                   </div>
+                  <a
+                    href={item.imagemUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 hover:text-blue-800 break-all"
+                  >
+                    {item.imagemUrl}
+                  </a>
                 </div>
               )}
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-4 pt-2">
                 <Button type="submit" disabled={isSaving}>
-                  {isSaving ? "Salvando..." : "Salvar Alterações"}
+                  {isSaving ? "Salvando..." : "Salvar"}
                 </Button>
               </div>
             </form>
