@@ -21,9 +21,14 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get("file") as File
+    const folderId = formData.get("folderId") as string
 
     if (!file) {
       return NextResponse.json({ error: "Nenhum arquivo foi enviado" }, { status: 400 })
+    }
+
+    if (!folderId) {
+      return NextResponse.json({ error: "ID da pasta não especificado" }, { status: 400 })
     }
 
     // Criar um arquivo temporário
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
     const response = await drive.files.create({
       requestBody: {
         name: file.name,
-        parents: [process.env.GOOGLE_DRIVE_FOLDER_ID!],
+        parents: [folderId],
       },
       media: {
         mimeType: file.type,

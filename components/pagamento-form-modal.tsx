@@ -189,6 +189,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
   const uploadFileToDrive = async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append("file", file)
+    formData.append("folderId", "1i55quYEmytJU_AhBs3b2AnZVAo3YAnlT") // ID da pasta de pagamentos
 
     const response = await fetch("/api/upload", {
       method: "POST",

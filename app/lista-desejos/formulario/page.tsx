@@ -62,6 +62,7 @@ export default function FormularioDesejoPage() {
   const uploadFileToDrive = async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append("file", file)
+    formData.append("folderId", "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP") // ID da pasta da lista de desejos
 
     const response = await fetch("/api/upload", {
       method: "POST",
