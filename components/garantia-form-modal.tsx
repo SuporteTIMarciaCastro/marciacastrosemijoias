@@ -193,11 +193,42 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
           description: "Garantia atualizada com sucesso!",
         })
       } else {
-        await addWarrantyItem(dataToSave)
+        const newGarantiaId = await addWarrantyItem(dataToSave)
         toast({
           title: "Sucesso",
           description: "Garantia adicionada com sucesso!",
         })
+
+        // Enviar email para o cliente apenas quando for uma nova garantia
+        if (formData.email) {
+          try {
+            const response = await fetch('/api/send-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: formData.email,
+                nome: formData.nome,
+                status: formData.status,
+                loja: formData.loja,
+                garantiaId: newGarantiaId,
+                dataCompra: formData.dataCompra,
+                dataValidade: formData.dataValidade,
+                descricaoPecas: formData.descricaoPecas,
+                observacao: formData.observacao,
+                notaCompra: dataToSave.notaCompra,
+                imagemPecas: dataToSave.imagemPecas
+              }),
+            });
+
+            if (!response.ok) {
+              console.error('Erro ao enviar email');
+            }
+          } catch (error) {
+            console.error('Erro ao enviar email:', error);
+          }
+        }
       }
 
       onSuccess()
@@ -231,19 +262,44 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nome">Nome do Cliente</Label>
-                <Input id="nome" name="nome" value={formData.nome} onChange={handleInputChange} required />
+                <Label htmlFor="nome">
+                  Nome do Cliente <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="nome" 
+                  name="nome" 
+                  value={formData.nome} 
+                  onChange={handleInputChange} 
+                  required 
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" value={formData.email} onChange={handleInputChange} />
+                <Label htmlFor="email">
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="email" 
+                  name="email" 
+                  type="email" 
+                  value={formData.email} 
+                  onChange={handleInputChange} 
+                  required 
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="whatsapp">WhatsApp</Label>
-                <Input id="whatsapp" name="whatsapp" value={formData.whatsapp} onChange={handleInputChange} />
+                <Label htmlFor="whatsapp">
+                  WhatsApp <span className="text-red-500">*</span>
+                </Label>
+                <Input 
+                  id="whatsapp" 
+                  name="whatsapp" 
+                  value={formData.whatsapp} 
+                  onChange={handleInputChange} 
+                  required 
+                />
               </div>
               
               <div className="space-y-2">
@@ -377,17 +433,19 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="observacao">Justificativa</Label>
-              <Textarea
-                id="observacao"
-                name="observacao"
-                placeholder="Justificativa da solicitação..."
-                value={formData.observacao}
-                onChange={handleInputChange}
-                className="min-h-[100px]"
-              />
-            </div>
+            {itemId && (
+              <div className="space-y-2">
+                <Label htmlFor="observacao">Justificativa</Label>
+                <Textarea
+                  id="observacao"
+                  name="observacao"
+                  placeholder="Justificativa da solicitação..."
+                  value={formData.observacao}
+                  onChange={handleInputChange}
+                  className="min-h-[100px]"
+                />
+              </div>
+            )}
 
             <div className="flex justify-end gap-4 pt-2">
               <Button type="button" variant="outline" onClick={onClose}>
