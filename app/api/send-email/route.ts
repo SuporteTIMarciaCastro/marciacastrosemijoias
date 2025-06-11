@@ -18,8 +18,8 @@ export async function POST(request: Request) {
     } = await request.json();
 
     // Gerar a URL de visualização da garantia
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const garantiaUrl = `${baseUrl}/garantias/${garantiaId}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://marciacastrosemijoias.vercel.app';
+    const garantiaUrl = `${baseUrl}/lista-garantia/visualizar/${garantiaId}`;
 
     // Configurar o transporter do nodemailer
     const transporter = nodemailer.createTransport({
