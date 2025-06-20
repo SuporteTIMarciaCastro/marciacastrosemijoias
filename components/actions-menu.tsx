@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle, Printer } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -18,6 +18,7 @@ interface ActionsMenuProps {
   onDelete?: () => void
   onFinalize?: () => void
   onMarkAvisado?: () => void
+  onPrint?: () => void
   viewPath?: string
   editPath?: string
   itemId?: string
@@ -32,6 +33,7 @@ export function ActionsMenu({
   onDelete, 
   onFinalize,
   onMarkAvisado,
+  onPrint,
   viewPath, 
   editPath, 
   itemId, 
@@ -133,6 +135,13 @@ export function ActionsMenu({
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             Finalizar
+          </DropdownMenuItem>
+        )}
+
+        {onPrint && (
+          <DropdownMenuItem onClick={onPrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimir
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

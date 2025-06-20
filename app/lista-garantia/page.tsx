@@ -131,6 +131,92 @@ export default function ListaGarantiaPage() {
     loadWarrantyItems()
   }
 
+  const handlePrintWarranty = async (item: WarrantyItem) => {
+    const jsPDF = (await import("jspdf")).jsPDF;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [72.1, 210],
+    });
+
+    // Adiciona a logo
+    const logoUrl = "/logovermelha.png";
+    let logoImg: string | undefined = undefined;
+    try {
+      const response = await fetch(logoUrl);
+      const blob = await response.blob();
+      logoImg = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+      doc.addImage(logoImg, "PNG", 5, 5, 20, 20);
+    } catch (e) {
+      // Se não conseguir carregar a logo, segue sem ela
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text("CUPOM DE GARANTIA", 28, 8);
+    doc.setFontSize(8);
+    doc.text("MARCIA DE LOURDES", 28, 14);
+    doc.text("NASCIMENTO CASTRO BARROS", 28, 18);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    let y = 30;
+    doc.text(`Data da Compra: ${item.dataCompra || "-"}`, 5, y);
+    y += 6;
+    doc.text(`Entrada da Solicitação: ${item.dataValidade || "-"}`, 5, y);
+    y += 6;
+    doc.text(`Nome: ${item.nome || "-"}`, 5, y);
+    y += 6;
+    doc.text(`Email: ${item.email || "-"}`, 5, y);
+    y += 6;
+    doc.text(`WhatsApp: ${item.whatsapp || "-"}`, 5, y);
+    y += 6;
+    doc.text(`Loja: ${item.loja || "-"}`, 5, y);
+    y += 6;
+    doc.text(`Descrição das Peças: ${item.descricaoPecas || "-"}`, 5, y, { maxWidth: 62 });
+
+    // Linhas para assinatura
+    y += 16;
+    doc.setFont('helvetica', 'bold');
+    doc.text("Assinatura do Cliente (Entrega)", 5, y - 7);    
+    doc.line(5, y, 67, y); // linha 1
+
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATA:', 5, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('___/___/_____', 20, y);
+
+
+    y += 20;
+    doc.line(5, y, 67, y); // linha 2
+    doc.setFont('helvetica', 'bold');
+    doc.text("Assinatura do Cliente (Recebimento)", 5, y - 7);
+
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATA:', 5, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text('___/___/_____', 20, y);
+
+    // Texto de orientação ao final do PDF
+    y += 15;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.text(
+      'Depois que você preencher esta solicitação de pedido, se inicia o prazo de 30 dias úteis para a entrega que será feita exclusivamente na loja Márcia Castro Semijoias pelo titular da compra devidamente identificado. Caso opte por enviar um terceiro para receber a peça, o mesmo deverá apresentar documento de identificação, sendo total responsabilidade do titular qualquer tipo de dano ou desvio causado pelo terceiro.',
+      5,
+      y,
+      { maxWidth: 62 }
+    );
+
+    doc.save(`garantia-${item.id}.pdf`);
+  };
+
   const filteredItems = warrantyItems.filter(
     (item) =>
       item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,6 +300,7 @@ export default function ListaGarantiaPage() {
                             pageType="listaGarantia"
                             itemId={item.id}
                             isFinalized={item.finalized}
+                            onPrint={() => handlePrintWarranty(item)}
                           />
                         </td>
                       </tr>
