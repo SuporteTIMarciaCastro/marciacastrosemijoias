@@ -40,6 +40,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const [originalItem, setOriginalItem] = useState<any>(null)
 
   // Carregar dados se estiver editando
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
       fetchWarrantyItem(itemId)
         .then((item) => {
           if (item) {
+            setOriginalItem(item)
             setFormData({
               nome: item.nome || "",
               dataCompra: item.dataCompra || "",
@@ -80,6 +82,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     } else {
       // Resetar formulário quando abrir para adicionar novo
       resetForm()
+      setOriginalItem(null)
     }
   }, [itemId, isOpen, toast])
 
@@ -182,8 +185,8 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
       const dataToSave = {
         ...formData,
-        imagemPecas: imagemPecasUrls.join(","), // Converte array para string separada por vírgula
-        notaCompra: notaCompraUrl,
+        imagemPecas: imagemPecasUrls.length > 0 ? imagemPecasUrls.join(",") : (originalItem?.imagemPecas || ""),
+        notaCompra: notaCompraUrl || (originalItem?.notaCompra || ""),
       }
 
       if (itemId) {
