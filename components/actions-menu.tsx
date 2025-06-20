@@ -17,11 +17,13 @@ interface ActionsMenuProps {
   onEdit?: () => void
   onDelete?: () => void
   onFinalize?: () => void
+  onMarkAvisado?: () => void
   viewPath?: string
   editPath?: string
   itemId?: string
   pageType: PageType
   isFinalized?: boolean
+  avisado?: boolean
 }
 
 export function ActionsMenu({ 
@@ -29,11 +31,13 @@ export function ActionsMenu({
   onEdit, 
   onDelete, 
   onFinalize,
+  onMarkAvisado,
   viewPath, 
   editPath, 
   itemId, 
   pageType,
-  isFinalized = false
+  isFinalized = false,
+  avisado = false,
 }: ActionsMenuProps) {
   const { user } = useAuth()
   const router = useRouter()
@@ -109,6 +113,16 @@ export function ActionsMenu({
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Remover
+          </DropdownMenuItem>
+        )}
+
+        {pageType === "listaDesejos" && !avisado && (
+          <DropdownMenuItem
+            className="text-blue-600"
+            onClick={onMarkAvisado}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Marcar como avisado
           </DropdownMenuItem>
         )}
 

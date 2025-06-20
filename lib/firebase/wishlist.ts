@@ -51,9 +51,15 @@ export async function fetchWishlistItem(id: string): Promise<WishlistItem | null
 }
 
 // Atualizar um item da lista de desejos
-export async function updateWishlistItem(id: string, data: Omit<WishlistItem, "id">): Promise<void> {
+export async function updateWishlistItem(id: string, data: Partial<Omit<WishlistItem, "id">>): Promise<void> {
   const docRef = doc(db, "wishlist", id)
   await updateDoc(docRef, data)
+}
+
+// Marcar um item como avisado
+export async function markWishlistItemAsAvisado(id: string): Promise<void> {
+  const docRef = doc(db, "wishlist", id)
+  await updateDoc(docRef, { avisado: true })
 }
 
 // Excluir um item da lista de desejos

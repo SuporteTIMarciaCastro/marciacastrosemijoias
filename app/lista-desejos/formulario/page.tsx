@@ -31,12 +31,27 @@ export default function FormularioDesejoPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [celularError, setCelularError] = useState("")
   const router = useRouter()
   const { toast } = useToast()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === "celular") {
+      // Máscara simples para o campo celular
+      let cleaned = value.replace(/\D/g, "")
+      let formatted = cleaned
+      if (cleaned.length > 2) {
+        formatted = `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`
+      }
+      if (cleaned.length > 7) {
+        formatted = `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`
+      }
+      setFormData((prev) => ({ ...prev, [name]: formatted }))
+      setCelularError("")
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -77,9 +92,20 @@ export default function FormularioDesejoPage() {
     return result.fileUrl
   }
 
+  const validateCelular = (celular: string) => {
+    // Regex para (XX) XXXXX-XXXX
+    return /^\(\d{2}\) \d{5}-\d{4}$/.test(celular)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+
+    if (!validateCelular(formData.celular)) {
+      setCelularError("O celular deve estar no formato (XX) XXXXX-XXXX")
+      setIsSubmitting(false)
+      return
+    }
 
     try {
       let imagemUrl = ""
@@ -192,7 +218,11 @@ export default function FormularioDesejoPage() {
                         value={formData.celular}
                         onChange={handleInputChange}
                         required
+                        maxLength={15}
+                        pattern="\(\d{2}\) \d{5}-\d{4}"
+                        placeholder="(99) 99999-9999"
                       />
+                      {celularError && <span className="text-red-500 text-xs">{celularError}</span>}
                     </div>
                   </div>
 

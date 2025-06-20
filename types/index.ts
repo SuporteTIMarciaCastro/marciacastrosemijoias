@@ -13,6 +13,7 @@ export interface WishlistItem {
   data: string
   createdAt?: string
   updatedAt?: string
+  avisado?: boolean
 }
 
 // Tipo para itens de garantia

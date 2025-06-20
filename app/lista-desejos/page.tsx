@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWishlistItems, deleteWishlistItem } from "@/lib/firebase/wishlist"
+import { fetchWishlistItems, deleteWishlistItem, markWishlistItemAsAvisado } from "@/lib/firebase/wishlist"
 import type { WishlistItem } from "@/types"
 import Header from "@/components/header"
 import {
@@ -83,10 +83,30 @@ export default function ListaDesejosPage() {
     })
   }
 
+  const handleMarkAvisado = async (id: string) => {
+    try {
+      await markWishlistItemAsAvisado(id)
+      setWishlistItems((items) =>
+        items.map((item) =>
+          item.id === id ? { ...item, avisado: true } : item
+        )
+      )
+      toast({
+        title: "Sucesso",
+        description: "Item marcado como avisado!",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível marcar como avisado",
+        variant: "destructive",
+      })
+    }
+  }
+
   const filteredItems = wishlistItems.filter(
     (item) =>
       item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.produto.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -135,11 +155,10 @@ export default function ListaDesejosPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
+                    <TableHead>Avisado</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Celular</TableHead>
-                    <TableHead>Email</TableHead>
                     <TableHead>Produto</TableHead>
-                    <TableHead>Já Comprou</TableHead>
                     <TableHead>Loja Destino</TableHead>
                     <TableHead>Imagem</TableHead>
                     <TableHead>Descrição</TableHead>
@@ -149,13 +168,13 @@ export default function ListaDesejosPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-4">
+                      <TableCell colSpan={9} className="text-center py-4">
                         Carregando...
                       </TableCell>
                     </TableRow>
                   ) : filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-4">
+                      <TableCell colSpan={9} className="text-center py-4">
                         Nenhum item encontrado
                       </TableCell>
                     </TableRow>
@@ -163,11 +182,16 @@ export default function ListaDesejosPage() {
                     filteredItems.map((item, index) => (
                       <TableRow key={item.id}>
                         <TableCell>{index + 1}</TableCell>
+                        <TableCell>
+                          {item.avisado ? (
+                            <span className="inline-block rounded px-2 py-1 text-xs font-semibold bg-green-100 text-green-700">Sim</span>
+                          ) : (
+                            <span className="inline-block rounded px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600">Não</span>
+                          )}
+                        </TableCell>
                         <TableCell>{item.nome}</TableCell>
                         <TableCell>{item.celular}</TableCell>
-                        <TableCell>{item.email}</TableCell>
                         <TableCell>{item.produto}</TableCell>
-                        <TableCell>{item.jaComprou ? "Sim" : "Não"}</TableCell>
                         <TableCell>{item.lojaDestino}</TableCell>
                         <TableCell>
                           {item.imagemUrl ? (
@@ -191,6 +215,8 @@ export default function ListaDesejosPage() {
                             itemId={item.id}
                             onDelete={() => handleDelete(item.id)}
                             pageType="listaDesejos"
+                            avisado={item.avisado}
+                            onMarkAvisado={() => handleMarkAvisado(item.id)}
                           />
                         </TableCell>
                       </TableRow>
