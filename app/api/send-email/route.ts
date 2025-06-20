@@ -14,7 +14,8 @@ export async function POST(request: Request) {
       descricaoPecas,
       observacao,
       notaCompra,
-      imagemPecas
+      imagemPecas,
+      vendedor
     } = await request.json();
 
     // Gerar a URL de visualização da garantia
@@ -141,6 +142,7 @@ export async function POST(request: Request) {
             <div class="info-section">
               <div class="info-title">Informações da Garantia</div>
               <p><strong>Loja:</strong> ${loja}</p>
+              <p><strong>Vendedor Responsável:</strong> ${vendedor || '-'} </p>
               <p><strong>Data da Compra:</strong> ${dataCompra}</p>
               <p><strong>Data da Solicitação:</strong> ${dataValidade}</p>
             </div>

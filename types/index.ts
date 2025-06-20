@@ -20,6 +20,7 @@ export interface WishlistItem {
 export interface WarrantyItem {
   id: string
   nome: string
+  vendedor?: string
   dataCompra: string
   dataValidade: string
   status: string

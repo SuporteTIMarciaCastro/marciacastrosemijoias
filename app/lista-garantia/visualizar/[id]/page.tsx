@@ -194,6 +194,13 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <User className="h-4 w-4" />
+                        <span>Vendedor Responsável</span>
+                      </div>
+                      <p className="font-medium">{item.vendedor || 'Não informado'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Mail className="h-4 w-4" />
                         <span>Email</span>
                       </div>

@@ -171,6 +171,8 @@ export default function ListaGarantiaPage() {
     y += 6;
     doc.text(`Nome: ${item.nome || "-"}`, 5, y);
     y += 6;
+    doc.text(`Vendedor Responsável: ${item.vendedor || "-"}`, 5, y);
+    y += 6;
     doc.text(`Email: ${item.email || "-"}`, 5, y);
     y += 6;
     doc.text(`WhatsApp: ${item.whatsapp || "-"}`, 5, y);
@@ -180,7 +182,7 @@ export default function ListaGarantiaPage() {
     doc.text(`Descrição das Peças: ${item.descricaoPecas || "-"}`, 5, y, { maxWidth: 62 });
 
     // Linhas para assinatura
-    y += 16;
+    y += 35;
     doc.setFont('helvetica', 'bold');
     doc.text("Assinatura do Cliente (Entrega)", 5, y - 7);    
     doc.line(5, y, 67, y); // linha 1
@@ -192,7 +194,7 @@ export default function ListaGarantiaPage() {
     doc.text('___/___/_____', 20, y);
 
 
-    y += 20;
+    y += 15;
     doc.line(5, y, 67, y); // linha 2
     doc.setFont('helvetica', 'bold');
     doc.text("Assinatura do Cliente (Recebimento)", 5, y - 7);
@@ -204,7 +206,7 @@ export default function ListaGarantiaPage() {
     doc.text('___/___/_____', 20, y);
 
     // Texto de orientação ao final do PDF
-    y += 15;
+    y += 10;
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.text(

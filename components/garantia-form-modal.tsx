@@ -23,6 +23,7 @@ interface GarantiaFormModalProps {
 export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }: GarantiaFormModalProps) {
   const [formData, setFormData] = useState({
     nome: "",
+    vendedor: "",
     dataCompra: "",
     dataValidade: "",
     status: "Recebido loja",
@@ -52,6 +53,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
             setOriginalItem(item)
             setFormData({
               nome: item.nome || "",
+              vendedor: item.vendedor || "",
               dataCompra: item.dataCompra || "",
               dataValidade: item.dataValidade || "",
               status: item.status || "Devolvida para loja",
@@ -89,6 +91,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   const resetForm = () => {
     setFormData({
       nome: "",
+      vendedor: "",
       dataCompra: "",
       dataValidade: "",
       status: "Recebido loja",
@@ -107,7 +110,25 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === "whatsapp") {
+      // Remove tudo que não for número
+      let num = value.replace(/\D/g, "");
+      // Limita a 11 dígitos
+      num = num.slice(0, 11);
+      // Aplica a máscara
+      let formatted = num;
+      if (num.length > 2) {
+        formatted = `(${num.slice(0, 2)}`;
+        if (num.length > 7) {
+          formatted += `) ${num.slice(2, 7)}-${num.slice(7)}`;
+        } else if (num.length > 2) {
+          formatted += `) ${num.slice(2)}`;
+        }
+      }
+      setFormData((prev) => ({ ...prev, [name]: formatted }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -185,6 +206,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
       const dataToSave = {
         ...formData,
+        vendedor: formData.vendedor,
         imagemPecas: imagemPecasUrls.length > 0 ? imagemPecasUrls.join(",") : (originalItem?.imagemPecas || ""),
         notaCompra: notaCompraUrl || (originalItem?.notaCompra || ""),
       }
@@ -221,7 +243,8 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
                 descricaoPecas: formData.descricaoPecas,
                 observacao: formData.observacao,
                 notaCompra: dataToSave.notaCompra,
-                imagemPecas: dataToSave.imagemPecas
+                imagemPecas: dataToSave.imagemPecas,
+                vendedor: formData.vendedor
               }),
             });
 
@@ -274,6 +297,18 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
                   value={formData.nome} 
                   onChange={handleInputChange} 
                   required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendedor">
+                  Vendedor Responsável <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="vendedor"
+                  name="vendedor"
+                  value={formData.vendedor}
+                  onChange={handleInputChange}
+                  required
                 />
               </div>
               <div className="space-y-2">
