@@ -21,10 +21,10 @@ export function usePermissions() {
         // Se for admin, tem todas as permissões
         if (user.isAdmin) {
           setPermissions({
-            listaDesejos: { visualizar: true, adicionar: true, editar: true, remover: true },
-            listaGarantia: { visualizar: true, adicionar: true, editar: true, remover: true },
-            listaMateriais: { visualizar: true, adicionar: true, editar: true, remover: true },
-            pagamentos: { visualizar: true, adicionar: true, editar: true, remover: true }
+            listaDesejos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
+            listaGarantia: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true, finalizar: true },
+            listaMateriais: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
+            pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true }
           });
           setLoading(false);
           return;
@@ -53,11 +53,13 @@ export function usePermissions() {
     loadPermissions();
   }, [user]);
 
-  const can = (module: keyof UserPermissions, action: 'visualizar' | 'adicionar' | 'editar' | 'remover') => {
+  const can = (module: keyof UserPermissions, action: 'visualizar' | 'adicionar' | 'editar' | 'remover' | 'finalizar') => {
     if (!user) return false;
     if (user.isAdmin) return true;
     if (!permissions) return false;
-    return permissions[module]?.[action] || false;
+    
+    const modulePermissions = permissions[module] as any;
+    return modulePermissions?.[action] || false;
   };
 
   return {

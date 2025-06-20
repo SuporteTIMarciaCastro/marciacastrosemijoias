@@ -17,6 +17,7 @@ export interface UserPermissions {
     adicionar: boolean;
     editar: boolean;
     remover: boolean;
+    finalizar: boolean;
   };
   
   // Permissões de Lista de Materiais

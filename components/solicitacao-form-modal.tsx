@@ -199,6 +199,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
                   <SelectItem value="Marketing">Marketing</SelectItem>
                   <SelectItem value="Financeiro">Financeiro</SelectItem>
                   <SelectItem value="T.I">T.I</SelectItem>
+                  <SelectItem value="RH">RH</SelectItem>
                   <SelectItem value="Cocais Shopping">Cocais Shopping</SelectItem>
                   <SelectItem value="Parnaíba Shopping">Parnaíba Shopping</SelectItem>
                   <SelectItem value="Rio Anil Shopping">Rio Anil Shopping</SelectItem>

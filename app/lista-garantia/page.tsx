@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -38,6 +38,7 @@ export default function ListaGarantiaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
+  const [itemToFinalize, setItemToFinalize] = useState<string | null>(null)
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -82,6 +83,32 @@ export default function ListaGarantiaPage() {
         description: "Não foi possível remover a garantia",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleFinalize = async (id: string) => {
+    setItemToFinalize(id)
+  }
+
+  const confirmFinalize = async () => {
+    if (!itemToFinalize) return
+    try {
+      await finalizeWarrantyItem(itemToFinalize)
+      setWarrantyItems(warrantyItems.map((item) => 
+        item.id === itemToFinalize ? { ...item, finalized: true } : item
+      ))
+      toast({
+        title: "Sucesso",
+        description: "Garantia finalizada com sucesso",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível finalizar a garantia",
+        variant: "destructive",
+      })
+    } finally {
+      setItemToFinalize(null)
     }
   }
 
@@ -137,6 +164,7 @@ export default function ListaGarantiaPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
+                    <th className="py-3 px-4 text-left">Finalizada</th>
                     <th className="py-3 px-4 text-left">Nome</th>
                     <th className="py-3 px-4 text-left">Entrada da Solicitação</th>
                     <th className="py-3 px-4 text-left">Status</th>
@@ -147,19 +175,30 @@ export default function ListaGarantiaPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-4">
+                      <td colSpan={6} className="text-center py-4">
                         Carregando...
                       </td>
                     </tr>
                   ) : filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-4">
+                      <td colSpan={6} className="text-center py-4">
                         Nenhuma garantia encontrada
                       </td>
                     </tr>
                   ) : (
                     filteredItems.map((item) => (
-                      <tr key={item.id} className="border-b hover:bg-gray-50">
+                      <tr key={item.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-3 px-4">
+                          {item.finalized ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Finalizada
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Pendente
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3 px-4">{item.nome}</td>
                         <td className="py-3 px-4">{item.dataValidade}</td>
                         <td className="py-3 px-4">
@@ -171,8 +210,10 @@ export default function ListaGarantiaPage() {
                             viewPath="/lista-garantia/visualizar"
                             onEdit={() => handleEdit(item.id)}
                             onDelete={() => setItemToDelete(item.id)}
+                            onFinalize={() => handleFinalize(item.id)}
                             pageType="listaGarantia"
                             itemId={item.id}
+                            isFinalized={item.finalized}
                           />
                         </td>
                       </tr>
@@ -205,6 +246,22 @@ export default function ListaGarantiaPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => itemToDelete && handleDelete(itemToDelete)}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo de confirmação para finalização */}
+      <AlertDialog open={!!itemToFinalize} onOpenChange={() => setItemToFinalize(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar finalização</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja finalizar esta garantia? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmFinalize}>Finalizar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

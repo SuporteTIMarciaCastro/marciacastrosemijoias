@@ -5,7 +5,7 @@ import { UserPermissions } from '@/types/permissions';
 interface PermissionGuardProps {
   children: ReactNode;
   module: keyof UserPermissions;
-  action: 'visualizar' | 'adicionar' | 'editar' | 'remover';
+  action: 'visualizar' | 'adicionar' | 'editar' | 'remover' | 'finalizar';
   fallback?: ReactNode;
 }
 

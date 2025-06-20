@@ -52,8 +52,8 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <div className="w-full bg-white py-4 px-6 shadow-sm">
+      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
           <div className="max-w-4xl mx-auto">
             <Image
               src="/logo.png"
@@ -79,8 +79,8 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
 
   if (!item) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50">
-        <div className="w-full bg-white py-4 px-6 shadow-sm">
+      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
           <div className="max-w-4xl mx-auto">
             <Image
               src="/logo.png"
@@ -105,8 +105,8 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <div className="w-full bg-white py-4 px-6 shadow-sm">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
         <div className="max-w-4xl mx-auto">
           <Image
             src="/logo.png"
@@ -119,10 +119,10 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
       </div>
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Card>
+          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-center text-2xl font-bold text-gray-800">
+                <CardTitle className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">
                   Detalhes da Garantia
                 </CardTitle>
                 <Button
@@ -148,24 +148,34 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                 {/* Status e Datas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                       <Calendar className="h-4 w-4" />
                       <span>Data da Compra</span>
                     </div>
-                    <p className="font-medium">{item.dataCompra}</p>
+                    <p className="font-medium dark:text-gray-100">{item.dataCompra}</p>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                       <Calendar className="h-4 w-4" />
                       <span>Entrada da Solicitação</span>
                     </div>
-                    <p className="font-medium">{item.dataValidade}</p>
+                    <p className="font-medium dark:text-gray-100">{item.dataValidade}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-sm text-gray-500">Status:</span>
-                  <StatusBadge status={item.status} />
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Status:</span>
+                  {item.finalized ? (
+                    <>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                        Finalizado
+                      </span>
+                      <span className="mx-1 font-bold text-gray-500 dark:text-gray-400">{'->'}</span>
+                      <StatusBadge status={item.status} />
+                    </>
+                  ) : (
+                    <StatusBadge status={item.status} />
+                  )}
                 </div>
 
                 {/* Informações do Cliente */}

@@ -121,4 +121,61 @@ Gerencia as solicitações de pagamentos e reembolsos.
 - Funciona com texto parcial
 
 ## Suporte
-Em caso de dúvidas ou problemas, entre em contato com o suporte técnico. 
+Em caso de dúvidas ou problemas, entre em contato com o suporte técnico.
+
+## Configuração de Permissões para Finalização de Garantias
+
+### Usuário com Nome "loja"
+
+Para que um usuário possa finalizar garantias, ele deve ter o campo `name` igual a "loja" e as permissões adequadas configuradas no Firestore.
+
+#### Exemplo de configuração no Firestore:
+
+```json
+{
+  "fields": {
+    "email": {
+      "stringValue": "loja@exemplo.com"
+    },
+    "name": {
+      "stringValue": "loja"
+    },
+    "isAdmin": {
+      "booleanValue": false
+    },
+    "permissions": {
+      "mapValue": {
+        "fields": {
+          "listaGarantia": {
+            "mapValue": {
+              "fields": {
+                "visualizarPage": {"booleanValue": true},
+                "visualizar": {"booleanValue": true},
+                "adicionar": {"booleanValue": true},
+                "editar": {"booleanValue": true},
+                "remover": {"booleanValue": false},
+                "finalizar": {"booleanValue": true}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Funcionalidades Implementadas
+
+1. **Finalização de Garantias**: Usuários com nome "loja" podem finalizar garantias através do menu de ações
+2. **Campo `finalized`**: Adicionado ao tipo `WarrantyItem` para controlar o status de finalização
+3. **Permissão `finalizar`**: Nova permissão adicionada ao sistema de permissões
+4. **Interface Visual**: Badge visual para mostrar o status de finalização na tabela
+5. **Validação**: Ação de finalizar só aparece para usuários com nome "loja" e permissão adequada
+
+### Como Usar
+
+1. Configure as permissões do usuário no Firestore conforme o exemplo acima
+2. O usuário com nome "loja" verá a opção "Finalizar" no menu de ações das garantias
+3. Ao clicar em "Finalizar", o campo `finalized` será definido como `true`
+4. O status será atualizado visualmente na tabela 

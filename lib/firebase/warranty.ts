@@ -81,3 +81,17 @@ export async function deleteWarrantyItem(id: string) {
     throw error
   }
 }
+
+// Finalizar uma garantia
+export async function finalizeWarrantyItem(id: string) {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, id)
+    await updateDoc(docRef, {
+      finalized: true,
+      updatedAt: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error("Erro ao finalizar garantia:", error)
+    throw error
+  }
+}

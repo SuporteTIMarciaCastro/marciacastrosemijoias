@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, CheckCircle } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -16,13 +16,25 @@ interface ActionsMenuProps {
   onView?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  onFinalize?: () => void
   viewPath?: string
   editPath?: string
   itemId?: string
   pageType: PageType
+  isFinalized?: boolean
 }
 
-export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, itemId, pageType }: ActionsMenuProps) {
+export function ActionsMenu({ 
+  onView, 
+  onEdit, 
+  onDelete, 
+  onFinalize,
+  viewPath, 
+  editPath, 
+  itemId, 
+  pageType,
+  isFinalized = false
+}: ActionsMenuProps) {
   const { user } = useAuth()
   const router = useRouter()
 
@@ -46,10 +58,14 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
     }
   }
 
-  // Verifica as permissões específicas da páginaa
+  // Verifica as permissões específicas da página
   const canView = user?.permissions?.[pageType]?.visualizar
-  const canEdit = user?.permissions?.[pageType]?.editar
+  const canEdit = user?.permissions?.[pageType]?.editar && !isFinalized
   const canDelete = user?.permissions?.[pageType]?.remover
+  const canFinalize = (user?.permissions?.[pageType] as any)?.finalizar
+  
+  // Verifica se o usuário tem nome "loja" para mostrar a ação de finalizar
+  const isLojaUser = user?.name?.toLowerCase() === "loja"
 
   return (
     <DropdownMenu>
@@ -60,7 +76,19 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {canView && (
+        {canView && viewPath && itemId ? (
+          <DropdownMenuItem asChild>
+            <a
+              href={`${viewPath}/${itemId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center"
+            >
+              <Eye className="mr-2 h-4 w-4" />
+              Visualizar
+            </a>
+          </DropdownMenuItem>
+        ) : canView && (
           <DropdownMenuItem onClick={handleView}>
             <Eye className="mr-2 h-4 w-4" />
             Visualizar
@@ -81,6 +109,16 @@ export function ActionsMenu({ onView, onEdit, onDelete, viewPath, editPath, item
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Remover
+          </DropdownMenuItem>
+        )}
+
+        {isLojaUser && canFinalize && !isFinalized && (
+          <DropdownMenuItem
+            className="text-green-600"
+            onClick={onFinalize}
+          >
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Finalizar
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

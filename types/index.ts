@@ -29,6 +29,7 @@ export interface WarrantyItem {
   email?: string
   imagemPecas?: string | null
   descricaoPecas?: string
+  finalized?: boolean
   createdAt?: string
   updatedAt?: string
 }
