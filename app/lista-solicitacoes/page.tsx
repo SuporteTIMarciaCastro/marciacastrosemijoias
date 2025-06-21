@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
 import { fetchMaterialRequests, deleteMaterialRequest } from "@/lib/firebase/material-requests"
@@ -36,12 +37,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, Filter, X } from "lucide-react"
 import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaSolicitacoesPage() {
   const [materialRequests, setMaterialRequests] = useState<MaterialRequest[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [setorFilter, setSetorFilter] = useState("todos")
+  const [statusFilter, setStatusFilter] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined)
@@ -116,12 +119,34 @@ export default function ListaSolicitacoesPage() {
     router.push(`/lista-solicitacoes/visualizar/${id}`)
   }
 
-  const filteredRequests = materialRequests.filter(
-    (request) =>
+  const clearFilters = () => {
+    setSearchTerm("")
+    setSetorFilter("todos")
+    setStatusFilter("todos")
+  }
+
+  const filteredRequests = materialRequests.filter((request) => {
+    const matchesSearch = 
       request.setor.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.status.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      request.status.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesSetor = 
+      setorFilter === "todos" || 
+      request.setor.toLowerCase().includes(setorFilter.toLowerCase())
+    
+    const matchesStatus = 
+      statusFilter === "todos" || 
+      request.status.toLowerCase().includes(statusFilter.toLowerCase())
+    
+    return matchesSearch && matchesSetor && matchesStatus
+  })
+
+  // Obter lista única de setores para o filtro
+  const setores = [...new Set(materialRequests.map(request => request.setor))].sort()
+
+  // Obter lista única de status para o filtro
+  const statusOptions = [...new Set(materialRequests.map(request => request.status))].sort()
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -168,16 +193,60 @@ export default function ListaSolicitacoesPage() {
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <CardTitle>Lista de Solicitações de Materiais</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Pesquisar solicitação..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
               <Button onClick={handleAddNew}>Adicionar Solicitação</Button>
             </div>
           </CardHeader>
           <CardContent>
+            {/* Filtros */}
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Filter className="h-4 w-4" />
+                Filtros
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Input
+                  placeholder="Pesquisar por setor, descrição ou status..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="md:col-span-1"
+                />
+                <Select value={setorFilter} onValueChange={setSetorFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os setores</SelectItem>
+                    {setores.map((setor) => (
+                      <SelectItem key={setor} value={setor}>
+                        {setor}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

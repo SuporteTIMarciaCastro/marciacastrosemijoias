@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
 import { fetchWishlistItems, deleteWishlistItem, markWishlistItemAsAvisado } from "@/lib/firebase/wishlist"
@@ -18,12 +19,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Copy, ExternalLink } from "lucide-react"
+import { MoreHorizontal, Copy, ExternalLink, Filter, X } from "lucide-react"
 import { ActionsMenu } from "@/components/actions-menu"
 
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [lojaDestinoFilter, setLojaDestinoFilter] = useState("todas")
+  const [avisadoFilter, setAvisadoFilter] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
   const router = useRouter()
@@ -84,6 +87,10 @@ export default function ListaDesejosPage() {
   }
 
   const handleMarkAvisado = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja marcar este item como avisado?")) {
+      return
+    }
+
     try {
       await markWishlistItemAsAvisado(id)
       setWishlistItems((items) =>
@@ -104,11 +111,31 @@ export default function ListaDesejosPage() {
     }
   }
 
-  const filteredItems = wishlistItems.filter(
-    (item) =>
+  const clearFilters = () => {
+    setSearchTerm("")
+    setLojaDestinoFilter("todas")
+    setAvisadoFilter("todos")
+  }
+
+  const filteredItems = wishlistItems.filter((item) => {
+    const matchesSearch = 
       item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.produto.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      item.produto.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesLojaDestino = 
+      lojaDestinoFilter === "todas" || 
+      item.lojaDestino.toLowerCase().includes(lojaDestinoFilter.toLowerCase())
+    
+    const matchesAvisado = 
+      avisadoFilter === "todos" || 
+      (avisadoFilter === "sim" && item.avisado) ||
+      (avisadoFilter === "nao" && !item.avisado)
+    
+    return matchesSearch && matchesLojaDestino && matchesAvisado
+  })
+
+  // Obter lista única de lojas destino para o filtro
+  const lojasDestino = [...new Set(wishlistItems.map(item => item.lojaDestino))].sort()
 
   if (!user) {
     return null
@@ -123,12 +150,6 @@ export default function ListaDesejosPage() {
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <CardTitle>Lista de Desejos</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Pesquisar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-2">
@@ -137,7 +158,7 @@ export default function ListaDesejosPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => router.push("/lista-desejos/formulario")}>
+                  <DropdownMenuItem onClick={() => window.open("/lista-desejos/formulario", "_blank")}>
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Abrir Formulário
                   </DropdownMenuItem>
@@ -150,6 +171,53 @@ export default function ListaDesejosPage() {
             </div>
           </CardHeader>
           <CardContent>
+            {/* Filtros */}
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Filter className="h-4 w-4" />
+                Filtros
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Input
+                  placeholder="Pesquisar por nome ou produto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="md:col-span-1"
+                />
+                <Select value={lojaDestinoFilter} onValueChange={setLojaDestinoFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Loja Destino" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as lojas</SelectItem>
+                    {lojasDestino.map((loja) => (
+                      <SelectItem key={loja} value={loja}>
+                        {loja}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={avisadoFilter} onValueChange={setAvisadoFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Avisado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="sim">Avisado</SelectItem>
+                    <SelectItem value="nao">Não avisado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>

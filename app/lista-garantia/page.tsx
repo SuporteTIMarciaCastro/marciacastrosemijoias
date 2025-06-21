@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -18,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, Filter, X } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,8 @@ import { ActionsMenu } from "@/components/actions-menu"
 export default function ListaGarantiaPage() {
   const [warrantyItems, setWarrantyItems] = useState<WarrantyItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [lojaFilter, setLojaFilter] = useState("todas")
+  const [finalizadaFilter, setFinalizadaFilter] = useState("todas")
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined)
@@ -97,6 +100,35 @@ export default function ListaGarantiaPage() {
       setWarrantyItems(warrantyItems.map((item) => 
         item.id === itemToFinalize ? { ...item, finalized: true } : item
       ))
+      // Buscar dados completos da garantia
+      const item = await fetchWarrantyItem(itemToFinalize)
+      if (item && item.email) {
+        try {
+          await fetch('/api/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: item.email,
+              nome: item.nome,
+              status: 'Finalizada',
+              loja: item.loja,
+              garantiaId: item.id,
+              dataCompra: item.dataCompra,
+              dataValidade: item.dataValidade,
+              descricaoPecas: item.descricaoPecas,
+              observacao: item.observacao,
+              notaCompra: item.notaCompra,
+              imagemPecas: item.imagemPecas,
+              vendedor: item.vendedor,
+              finalizado: true,
+              mensagemExtra: 'Sua solicitação de garantia foi encerrada. Caso tenha dúvidas, entre em contato com a loja.'
+            })
+          })
+        } catch (e) {
+          // Não interrompe o fluxo, apenas loga
+          console.error('Erro ao enviar email de finalização', e)
+        }
+      }
       toast({
         title: "Sucesso",
         description: "Garantia finalizada com sucesso",
@@ -219,11 +251,31 @@ export default function ListaGarantiaPage() {
     doc.save(`garantia-${item.id}.pdf`);
   };
 
-  const filteredItems = warrantyItems.filter(
-    (item) =>
+  const clearFilters = () => {
+    setSearchTerm("")
+    setLojaFilter("todas")
+    setFinalizadaFilter("todas")
+  }
+
+  const filteredItems = warrantyItems.filter((item) => {
+    const matchesSearch = 
       item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.status.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      item.status.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesLoja = 
+      lojaFilter === "todas" || 
+      item.loja.toLowerCase().includes(lojaFilter.toLowerCase())
+    
+    const matchesFinalizada = 
+      finalizadaFilter === "todas" || 
+      (finalizadaFilter === "sim" && item.finalized) ||
+      (finalizadaFilter === "nao" && !item.finalized)
+    
+    return matchesSearch && matchesLoja && matchesFinalizada
+  })
+
+  // Obter lista única de lojas para o filtro
+  const lojas = [...new Set(warrantyItems.map(item => item.loja))].sort()
 
   if (!user) {
     return null
@@ -238,22 +290,64 @@ export default function ListaGarantiaPage() {
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <CardTitle>Lista de Garantia</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Pesquisar garantia..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
               <Button onClick={handleAddNew}>Adicionar Garantia</Button>
             </div>
           </CardHeader>
           <CardContent>
+            {/* Filtros */}
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <Filter className="h-4 w-4" />
+                Filtros
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Input
+                  placeholder="Pesquisar por nome ou status..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="md:col-span-1"
+                />
+                <Select value={lojaFilter} onValueChange={setLojaFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Loja" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as lojas</SelectItem>
+                    {lojas.map((loja) => (
+                      <SelectItem key={loja} value={loja}>
+                        {loja}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={finalizadaFilter} onValueChange={setFinalizadaFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Finalizada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas</SelectItem>
+                    <SelectItem value="sim">Finalizada</SelectItem>
+                    <SelectItem value="nao">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline" 
+                  onClick={clearFilters}
+                  className="flex items-center gap-2"
+                >
+                  <X className="h-4 w-4" />
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
                     <th className="py-3 px-4 text-left">Finalizada</th>
                     <th className="py-3 px-4 text-left">Nome</th>
+                    <th className="py-3 px-4 text-left">Celular</th>
                     <th className="py-3 px-4 text-left">Entrada da Solicitação</th>
                     <th className="py-3 px-4 text-left">Status</th>
                     <th className="py-3 px-4 text-left">Loja</th>
@@ -263,13 +357,13 @@ export default function ListaGarantiaPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-4">
+                      <td colSpan={7} className="text-center py-4">
                         Carregando...
                       </td>
                     </tr>
                   ) : filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-4">
+                      <td colSpan={7} className="text-center py-4">
                         Nenhuma garantia encontrada
                       </td>
                     </tr>
@@ -288,6 +382,7 @@ export default function ListaGarantiaPage() {
                           )}
                         </td>
                         <td className="py-3 px-4">{item.nome}</td>
+                        <td className="py-3 px-4">{item.whatsapp || "-"}</td>
                         <td className="py-3 px-4">{item.dataValidade}</td>
                         <td className="py-3 px-4">
                           <StatusBadge status={item.status} />
