@@ -128,6 +128,10 @@ export default function VisualizarPagamentoPage({ params }: { params: Promise<{ 
                   <p>{pagamento.tipo}</p>
                 </div>
                 <div>
+                  <h3 className="font-semibold mb-2">Criado por</h3>
+                  <p>{pagamento.criadoPor || '-'}</p>
+                </div>
+                <div>
                   <h3 className="font-semibold mb-2">Data</h3>
                   <p>{pagamento.data ? new Date(pagamento.data).toLocaleDateString('pt-BR') : '-'}</p>
                 </div>

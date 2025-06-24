@@ -17,6 +17,7 @@ export interface Pagamento {
   formaPagamento?: string
   createdAt?: string
   updatedAt?: string
+  criadoPor?: string
 }
 
 const COLLECTION_NAME = "pagamentos"

@@ -145,6 +145,7 @@ export default function NovoPagamentoPage() {
         boletoPdf: boletoPdfUrl,
         dataVencimento: form.dataVencimento,
         formaPagamento: formaPagamento,
+        criadoPor: user?.name || "",
       }
 
       const cleanPagamentoData = removeUndefinedFields(pagamentoData)

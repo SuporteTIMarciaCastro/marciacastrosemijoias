@@ -130,7 +130,7 @@ export default function ListaPagamentosPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID</TableHead>
+                    <TableHead>Criado por</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Finalidade</TableHead>
                     <TableHead>Situação</TableHead>
@@ -154,7 +154,7 @@ export default function ListaPagamentosPage() {
                   ) : (
                     filteredPagamentos.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell>{p.id}</TableCell>
+                        <TableCell>{p.criadoPor || '-'}</TableCell>
                         <TableCell>{p.tipo}</TableCell>
                         <TableCell className="max-w-xs truncate">{p.finalidade}</TableCell>
                         <TableCell>{getStatusBadge(p.situacao)}</TableCell>
