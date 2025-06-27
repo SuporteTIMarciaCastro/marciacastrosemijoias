@@ -192,6 +192,16 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     e.preventDefault()
     setIsSubmitting(true)
 
+    if (!formData.loja) {
+      toast({
+        title: "Erro",
+        description: "O campo Loja é obrigatório.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     try {
       // Upload das imagens
       const imagemPecasUrls = await Promise.all(
@@ -341,23 +351,26 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="loja">Loja</Label>
+                <Label htmlFor="loja">Loja <span className="text-red-500">*</span></Label>
                 <Select
                     value={formData.loja}
                     onValueChange={(value) => handleSelectChange("loja", value)}
                     required
                 >
-                    <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma loja" />
+                    <SelectTrigger className={formData.loja === "" && isSubmitting ? "border-red-500" : ""}>
+                      <SelectValue placeholder="Selecione uma loja" />
                     </SelectTrigger>
                     <SelectContent>
-                    <SelectItem value="Cocais Shopping">Cocais Shopping</SelectItem>
-                    <SelectItem value="Parnaíba Shopping">Parnaíba Shopping</SelectItem>
-                    <SelectItem value="Rio Anil Shopping">Rio Anil Shopping</SelectItem>
-                    <SelectItem value="Rio Poty Shopping">Rio Poty Shopping</SelectItem>
-                    <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
+                      <SelectItem value="Cocais Shopping">Cocais Shopping</SelectItem>
+                      <SelectItem value="Parnaíba Shopping">Parnaíba Shopping</SelectItem>
+                      <SelectItem value="Rio Anil Shopping">Rio Anil Shopping</SelectItem>
+                      <SelectItem value="Rio Poty Shopping">Rio Poty Shopping</SelectItem>
+                      <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
                     </SelectContent>
                 </Select>
+                {formData.loja === "" && isSubmitting && (
+                  <span className="text-red-500 text-xs mt-1 block">Por favor, selecione uma loja.</span>
+                )}
               </div>
 
             </div>

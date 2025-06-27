@@ -313,7 +313,7 @@ export default function ListaGarantiaPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas as lojas</SelectItem>
-                    {lojas.map((loja) => (
+                    {lojas.filter(loja => loja.trim() !== "").map((loja) => (
                       <SelectItem key={loja} value={loja}>
                         {loja}
                       </SelectItem>
