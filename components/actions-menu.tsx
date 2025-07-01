@@ -67,8 +67,8 @@ export function ActionsMenu({
   // Verifica as permissões específicas da página
   const canView = user?.permissions?.[pageType]?.visualizar
   const canEdit = (
-    (pageType === "listaMateriais" && (user?.permissions?.[pageType]?.editar_basico || user?.permissions?.[pageType]?.editar))
-    || (pageType !== "listaMateriais" && user?.permissions?.[pageType]?.editar)
+    ((pageType === "listaMateriais" || pageType === "listaGarantia") && (user?.permissions?.[pageType]?.editar_basico || user?.permissions?.[pageType]?.editar))
+    || ((pageType !== "listaMateriais" && pageType !== "listaGarantia") && user?.permissions?.[pageType]?.editar)
   ) && !isFinalized
   const canDelete = user?.permissions?.[pageType]?.remover
   const canFinalize = (user?.permissions?.[pageType] as any)?.finalizar

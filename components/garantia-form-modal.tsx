@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { addWarrantyItem, updateWarrantyItem, fetchWarrantyItem } from "@/lib/firebase/warranty"
 import { StatusBadge } from "@/components/status-badge"
+import { useAuth } from "@/context/auth-context"
 
 interface GarantiaFormModalProps {
   isOpen: boolean
@@ -42,6 +43,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const [originalItem, setOriginalItem] = useState<any>(null)
+  const { user } = useAuth()
 
   // Carregar dados se estiver editando
   useEffect(() => {
@@ -400,7 +402,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               </div>
             </div>
 
-            {itemId && (
+            {itemId && user?.permissions?.listaGarantia?.editar && (
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>

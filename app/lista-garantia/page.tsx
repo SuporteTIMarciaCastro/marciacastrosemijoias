@@ -345,6 +345,7 @@ export default function ListaGarantiaPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
+                    <th className="py-3 px-4 text-left">ID</th>
                     <th className="py-3 px-4 text-left">Finalizada</th>
                     <th className="py-3 px-4 text-left">Nome</th>
                     <th className="py-3 px-4 text-left">Celular</th>
@@ -357,19 +358,20 @@ export default function ListaGarantiaPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-4">
+                      <td colSpan={8} className="text-center py-4">
                         Carregando...
                       </td>
                     </tr>
                   ) : filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-4">
+                      <td colSpan={8} className="text-center py-4">
                         Nenhuma garantia encontrada
                       </td>
                     </tr>
                   ) : (
-                    filteredItems.map((item) => (
+                    filteredItems.map((item, idx) => (
                       <tr key={item.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <td className="py-3 px-4">{idx + 1}</td>
                         <td className="py-3 px-4">
                           {item.finalized ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
