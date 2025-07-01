@@ -229,6 +229,26 @@ export default function VisualizarPagamentoPage({ params }: { params: Promise<{ 
                   </a>
                 </div>
               )}
+
+              {pagamento.anexos && pagamento.anexos.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-2">Anexos</h3>
+                  <ul className="list-disc ml-6 space-y-1">
+                    {pagamento.anexos.map((url, idx) => (
+                      <li key={idx}>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          Anexo {idx + 1}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

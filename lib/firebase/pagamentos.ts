@@ -18,6 +18,7 @@ export interface Pagamento {
   createdAt?: string
   updatedAt?: string
   criadoPor?: string
+  anexos?: string[]
 }
 
 const COLLECTION_NAME = "pagamentos"

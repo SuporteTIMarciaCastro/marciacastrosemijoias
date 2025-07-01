@@ -12,6 +12,7 @@ import { addPagamento, Pagamento } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
 import { useAuth } from "@/context/auth-context"
 
+
 const tiposPagamento = [
   { value: "reembolso", label: "Reembolso" },
   { value: "Agendado", label: "Agendado" },
@@ -26,6 +27,7 @@ interface FormData {
   boletoPdf: File | undefined
   dataVencimento: string
   formaPagamento: string
+  anexos: File[]
 }
 
 export default function NovoPagamentoPage() {
@@ -44,6 +46,7 @@ export default function NovoPagamentoPage() {
     boletoPdf: undefined,
     dataVencimento: "",
     formaPagamento: "",
+    anexos: [],
   })
 
   useEffect(() => {
@@ -113,6 +116,30 @@ export default function NovoPagamentoPage() {
     }
   }
 
+  function handleAnexosChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (files) {
+      const validFiles = Array.from(files).filter(file => file.size <= MAX_FILE_SIZE)
+      if (validFiles.length < files.length) {
+        toast.error("Algum arquivo excede o limite de 4MB e foi ignorado.")
+      }
+      setForm((prev) => ({ ...prev, anexos: validFiles }))
+    }
+  }
+
+  async function uploadAnexosToDrive(files: File[]): Promise<string[]> {
+    const urls: string[] = []
+    for (const file of files) {
+      try {
+        const url = await uploadFileToDrive(file)
+        urls.push(url)
+      } catch (e) {
+        toast.error(`Erro ao enviar o arquivo: ${file.name}`)
+      }
+    }
+    return urls
+  }
+
   function removeUndefinedFields<T extends object>(obj: T): T {
     return Object.fromEntries(
       Object.entries(obj).filter(([_, value]) => value !== undefined)
@@ -134,6 +161,12 @@ export default function NovoPagamentoPage() {
         boletoPdfUrl = await uploadFileToDrive(form.boletoPdf)
       }
 
+      // Upload dos anexos
+      let anexosUrls: string[] = []
+      if (form.anexos && form.anexos.length > 0) {
+        anexosUrls = await uploadAnexosToDrive(form.anexos)
+      }
+
       const pagamentoData: Omit<Pagamento, "id"> = {
         tipo,
         finalidade: form.finalidade,
@@ -146,6 +179,7 @@ export default function NovoPagamentoPage() {
         dataVencimento: form.dataVencimento,
         formaPagamento: formaPagamento,
         criadoPor: user?.name || "",
+        anexos: anexosUrls,
       }
 
       const cleanPagamentoData = removeUndefinedFields(pagamentoData)
@@ -225,6 +259,26 @@ export default function NovoPagamentoPage() {
                       </p>
                     )}
                   </div>
+                  <div>
+                    <label className="block mb-1 font-medium">Anexar arquivos (opcional)</label>
+                    <Input
+                      name="anexos"
+                      type="file"
+                      multiple
+                      accept="image/*,application/pdf"
+                      onChange={handleAnexosChange}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Aceita imagens ou PDF (máximo 4MB cada)
+                    </p>
+                    {form.anexos.length > 0 && (
+                      <ul className="text-sm text-green-600 mt-1">
+                        {form.anexos.map((file, idx) => (
+                          <li key={idx}>{file.name}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </>
               )}
               {tipo === "Agendado" && (
@@ -274,6 +328,26 @@ export default function NovoPagamentoPage() {
                       )}
                     </div>
                   ) : null}
+                  <div>
+                    <label className="block mb-1 font-medium">Anexar arquivos (opcional)</label>
+                    <Input
+                      name="anexos"
+                      type="file"
+                      multiple
+                      accept="image/*,application/pdf"
+                      onChange={handleAnexosChange}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Aceita imagens ou PDF (máximo 4MB cada)
+                    </p>
+                    {form.anexos.length > 0 && (
+                      <ul className="text-sm text-green-600 mt-1">
+                        {form.anexos.map((file, idx) => (
+                          <li key={idx}>{file.name}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </>
               )}
               <div className="flex justify-end gap-2">
