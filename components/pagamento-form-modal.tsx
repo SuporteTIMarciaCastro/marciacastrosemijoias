@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { updatePagamento, fetchPagamento, Pagamento } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
+import { useAuth } from "@/context/auth-context"
 
 const tiposPagamento = [
   { value: "reembolso", label: "Reembolso" },
@@ -58,6 +59,8 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
   })
 
   const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+
+  const { user } = useAuth()
 
   useEffect(() => {
     if (isOpen && pagamentoId) {
@@ -266,242 +269,284 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
               <span className="text-muted-foreground">{tiposPagamento.find(tp => tp.value === tipo)?.label}</span>
             </div>
           </div>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {tipo === "reembolso" && (
-              <>
-                <div>
-                  <label className="block mb-1 font-medium">Finalidade do pagamento</label>
-                  <Textarea name="finalidade" placeholder="Descreva a finalidade" value={form.finalidade} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Data</label>
-                  <Input name="data" type="date" value={form.data} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Justificativa</label>
-                  <Textarea name="justificativa" placeholder="Justifique o pagamento" value={form.justificativa} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Dados para pagamento</label>
-                  <Input name="dadosPagamento" placeholder="Dados bancários, PIX ou boleto" value={form.dadosPagamento} onChange={handleInputChange} />
-                </div>
-                {showBoletoPdf && (
+          {(user?.permissions?.pagamentos?.editar_basico || user?.permissions?.pagamentos?.editar) ? (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              {tipo === "reembolso" && (
+                <>
                   <div>
-                    <label className="block mb-1 font-medium">Anexar PDF do boleto</label>
-                    <Input name="boletoPdf" type="file" accept="application/pdf" onChange={handleFileChange} />
+                    <label className="block mb-1 font-medium">Finalidade do pagamento</label>
+                    <Textarea name="finalidade" placeholder="Descreva a finalidade" value={form.finalidade} onChange={handleInputChange} />
                   </div>
-                )}
-                <div>
-                  <label className="block mb-1 font-medium">Comprovante de pagamento</label>
-                  <Input 
-                    name="comprovantePagamento" 
-                    type="file" 
-                    accept="image/*,.pdf"
-                    onChange={handleFileChange}
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Aceita arquivos PDF ou imagens (máximo 900KB)
-                  </p>
-                  {form.comprovantePagamento && (
-                    <div className="mt-1">
-                      {form.comprovantePagamento instanceof File ? (
-                        <p className="text-sm text-green-600">
-                          Arquivo selecionado: {form.comprovantePagamento.name}
-                        </p>
-                      ) : (
-                        <a
-                          href={form.comprovantePagamento}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          Ver comprovante no Google Drive
-                        </a>
-                      )}
+                  <div>
+                    <label className="block mb-1 font-medium">Data</label>
+                    <Input name="data" type="date" value={form.data} onChange={handleInputChange} />
+                  </div>
+                  {user?.permissions?.pagamentos?.editar && (
+                    <div>
+                      <label className="block mb-1 font-medium">Justificativa</label>
+                      <Textarea name="justificativa" placeholder="Justifique o pagamento" value={form.justificativa} onChange={handleInputChange} />
                     </div>
                   )}
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Situação</label>
-                  <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a situação">
-                        {form.situacao && (
-                          <span className={situacoes.find(s => s.value === form.situacao)?.color}>
-                            {situacoes.find(s => s.value === form.situacao)?.label}
-                          </span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {situacoes.map((s) => (
-                        <SelectItem key={s.value} value={s.value} className={s.color}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Comprovante de devolução</label>
-                  <Input 
-                    name="comprovanteDevolucao" 
-                    type="file" 
-                    accept="image/*,.pdf"
-                    onChange={handleFileChange}
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Aceita arquivos PDF ou imagens (máximo 900KB)
-                  </p>
-                  {form.comprovanteDevolucao && (
-                    <div className="mt-1">
-                      {form.comprovanteDevolucao instanceof File ? (
-                        <p className="text-sm text-green-600">
-                          Arquivo selecionado: {form.comprovanteDevolucao.name}
-                        </p>
-                      ) : (
-                        <a
-                          href={form.comprovanteDevolucao}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                        >
-                          Ver comprovante de devolução no Google Drive
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-            {tipo === "Agendado" && (
-              <>
-                <div>
-                  <label className="block mb-1 font-medium">Forma de Pagamento</label>
-                  <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
-                    <span className="text-muted-foreground capitalize">{formaPagamento}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Finalidade do pagamento</label>
-                  <Textarea name="finalidade" placeholder="Descreva a finalidade" value={form.finalidade} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Data de vencimento</label>
-                  <Input name="dataVencimento" type="date" value={form.dataVencimento} onChange={handleInputChange} />
-                </div>
-                <div>
-                  <label className="block mb-1 font-medium">Justificativa</label>
-                  <Textarea name="justificativa" placeholder="Justifique o pagamento" value={form.justificativa} onChange={handleInputChange} />
-                </div>
-                {formaPagamento === "pix" || formaPagamento === "cartao" ? (
                   <div>
                     <label className="block mb-1 font-medium">Dados para pagamento</label>
-                    <Input name="dadosPagamento" placeholder={formaPagamento === "pix" ? "Chave PIX" : "Link para pagamento"} value={form.dadosPagamento} onChange={handleInputChange} />
+                    <Input name="dadosPagamento" placeholder="Dados bancários, PIX ou boleto" value={form.dadosPagamento} onChange={handleInputChange} />
                   </div>
-                ) : null}
-                {formaPagamento === "boleto" ? (
-                  <>
+                  {showBoletoPdf && (
                     <div>
-                      <label className="block mb-1 font-medium">Anexar boleto (PDF)</label>
-                      <Input 
-                        name="boletoPdf" 
-                        type="file" 
-                        accept="application/pdf"
-                        onChange={handleFileChange}
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Aceita apenas arquivos PDF (máximo 900KB)
-                      </p>
-                      {form.boletoPdf && (
-                        <div className="mt-1">
-                          {form.boletoPdf instanceof File ? (
-                            <p className="text-sm text-green-600">
-                              Arquivo selecionado: {form.boletoPdf.name}
-                            </p>
-                          ) : (
-                            <a
-                              href={form.boletoPdf}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              Ver boleto no Google Drive
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      <label className="block mb-1 font-medium">Anexar PDF do boleto</label>
+                      <Input name="boletoPdf" type="file" accept="application/pdf" onChange={handleFileChange} />
                     </div>
-                    <div>
-                      <label className="block mb-1 font-medium">Comprovante de pagamento</label>
-                      <Input 
-                        name="comprovantePagamento" 
-                        type="file" 
-                        accept="image/*,.pdf"
-                        onChange={handleFileChange}
-                      />
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Aceita arquivos PDF ou imagens (máximo 900KB)
-                      </p>
-                      {form.comprovantePagamento && (
-                        <div className="mt-1">
-                          {form.comprovantePagamento instanceof File ? (
-                            <p className="text-sm text-green-600">
-                              Arquivo selecionado: {form.comprovantePagamento.name}
-                            </p>
-                          ) : (
-                            <a
-                              href={form.comprovantePagamento}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              Ver comprovante no Google Drive
-                            </a>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : null}
-                <div>
-                  <label className="block mb-1 font-medium">Situação</label>
-                  <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a situação">
-                        {form.situacao && (
-                          <span className={situacoes.find(s => s.value === form.situacao)?.color}>
-                            {situacoes.find(s => s.value === form.situacao)?.label}
-                          </span>
-                        )}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {situacoes.map((s) => (
-                        <SelectItem key={s.value} value={s.value} className={s.color}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {formaPagamento !== "boleto" && (
+                  )}
                   <div>
                     <label className="block mb-1 font-medium">Comprovante de pagamento</label>
-                    <Input name="comprovantePagamento" type="file" onChange={handleFileChange} />
+                    <Input 
+                      name="comprovantePagamento" 
+                      type="file" 
+                      accept="image/*,.pdf"
+                      onChange={handleFileChange}
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Aceita arquivos PDF ou imagens (máximo 900KB)
+                    </p>
+                    {form.comprovantePagamento && (
+                      <div className="mt-1">
+                        {form.comprovantePagamento instanceof File ? (
+                          <p className="text-sm text-green-600">
+                            Arquivo selecionado: {form.comprovantePagamento.name}
+                          </p>
+                        ) : (
+                          <a
+                            href={form.comprovantePagamento}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            Ver comprovante no Google Drive
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </>
-            )}
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : "Salvar"}
-              </Button>
+                  {user?.permissions?.pagamentos?.editar && (
+                    <>
+                      <div>
+                        <label className="block mb-1 font-medium">Situação</label>
+                        <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a situação">
+                              {form.situacao && (
+                                <span className={situacoes.find(s => s.value === form.situacao)?.color}>
+                                  {situacoes.find(s => s.value === form.situacao)?.label}
+                                </span>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {situacoes.map((s) => (
+                              <SelectItem key={s.value} value={s.value} className={s.color}>
+                                {s.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block mb-1 font-medium">Comprovante de devolução</label>
+                        <Input 
+                          name="comprovanteDevolucao" 
+                          type="file" 
+                          accept="image/*,.pdf"
+                          onChange={handleFileChange}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Aceita arquivos PDF ou imagens (máximo 900KB)
+                        </p>
+                        {form.comprovanteDevolucao && (
+                          <div className="mt-1">
+                            {form.comprovanteDevolucao instanceof File ? (
+                              <p className="text-sm text-green-600">
+                                Arquivo selecionado: {form.comprovanteDevolucao.name}
+                              </p>
+                            ) : (
+                              <a
+                                href={form.comprovanteDevolucao}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                Ver comprovante de devolução no Google Drive
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              {tipo === "Agendado" && (
+                <>
+                  <div>
+                    <label className="block mb-1 font-medium">Forma de Pagamento</label>
+                    <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background">
+                      <span className="text-muted-foreground capitalize">{formaPagamento}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium">Finalidade do pagamento</label>
+                    <Textarea name="finalidade" placeholder="Descreva a finalidade" value={form.finalidade} onChange={handleInputChange} />
+                  </div>
+                  <div>
+                    <label className="block mb-1 font-medium">Data de vencimento</label>
+                    <Input name="dataVencimento" type="date" value={form.dataVencimento} onChange={handleInputChange} />
+                  </div>
+                  {user?.permissions?.pagamentos?.editar && (
+                    <div>
+                      <label className="block mb-1 font-medium">Justificativa</label>
+                      <Textarea name="justificativa" placeholder="Justifique o pagamento" value={form.justificativa} onChange={handleInputChange} />
+                    </div>
+                  )}
+                  {(formaPagamento === "pix" || formaPagamento === "cartao") ? (
+                    <div>
+                      <label className="block mb-1 font-medium">Dados para pagamento</label>
+                      <Input name="dadosPagamento" placeholder={formaPagamento === "pix" ? "Chave PIX" : "Link para pagamento"} value={form.dadosPagamento} onChange={handleInputChange} />
+                    </div>
+                  ) : null}
+                  {formaPagamento === "boleto" ? (
+                    <>
+                      <div>
+                        <label className="block mb-1 font-medium">Anexar boleto (PDF)</label>
+                        <Input 
+                          name="boletoPdf" 
+                          type="file" 
+                          accept="application/pdf"
+                          onChange={handleFileChange}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Aceita apenas arquivos PDF (máximo 900KB)
+                        </p>
+                        {form.boletoPdf && (
+                          <div className="mt-1">
+                            {form.boletoPdf instanceof File ? (
+                              <p className="text-sm text-green-600">
+                                Arquivo selecionado: {form.boletoPdf.name}
+                              </p>
+                            ) : (
+                              <a
+                                href={form.boletoPdf}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                Ver boleto no Google Drive
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block mb-1 font-medium">Comprovante de pagamento</label>
+                        <Input 
+                          name="comprovantePagamento" 
+                          type="file" 
+                          accept="image/*,.pdf"
+                          onChange={handleFileChange}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Aceita arquivos PDF ou imagens (máximo 900KB)
+                        </p>
+                        {form.comprovantePagamento && (
+                          <div className="mt-1">
+                            {form.comprovantePagamento instanceof File ? (
+                              <p className="text-sm text-green-600">
+                                Arquivo selecionado: {form.comprovantePagamento.name}
+                              </p>
+                            ) : (
+                              <a
+                                href={form.comprovantePagamento}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                Ver comprovante no Google Drive
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
+                  {user?.permissions?.pagamentos?.editar && (
+                    <>
+                      <div>
+                        <label className="block mb-1 font-medium">Situação</label>
+                        <Select value={form.situacao} onValueChange={(v) => handleSelectChange("situacao", v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a situação">
+                              {form.situacao && (
+                                <span className={situacoes.find(s => s.value === form.situacao)?.color}>
+                                  {situacoes.find(s => s.value === form.situacao)?.label}
+                                </span>
+                              )}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {situacoes.map((s) => (
+                              <SelectItem key={s.value} value={s.value} className={s.color}>
+                                {s.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block mb-1 font-medium">Comprovante de devolução</label>
+                        <Input 
+                          name="comprovanteDevolucao" 
+                          type="file" 
+                          accept="image/*,.pdf"
+                          onChange={handleFileChange}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Aceita arquivos PDF ou imagens (máximo 900KB)
+                        </p>
+                        {form.comprovanteDevolucao && (
+                          <div className="mt-1">
+                            {form.comprovanteDevolucao instanceof File ? (
+                              <p className="text-sm text-green-600">
+                                Arquivo selecionado: {form.comprovanteDevolucao.name}
+                              </p>
+                            ) : (
+                              <a
+                                href={form.comprovanteDevolucao}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                Ver comprovante de devolução no Google Drive
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={onClose}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Salvando..." : "Salvar"}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              Você não tem permissão para editar este pagamento.
             </div>
-          </form>
+          )}
         </div>
       </DialogContent>
     </Dialog>

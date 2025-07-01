@@ -102,7 +102,7 @@ export default function ListaPagamentosPage() {
   }
 
   const canAdd = user.permissions?.pagamentos?.adicionar
-  const canEdit = user.permissions?.pagamentos?.editar
+  const canEdit = user.permissions?.pagamentos?.editar_basico || user.permissions?.pagamentos?.editar
   const canDelete = user.permissions?.pagamentos?.remover
   const canView = user.permissions?.pagamentos?.visualizar
 

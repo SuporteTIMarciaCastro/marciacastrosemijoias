@@ -7,7 +7,7 @@ export interface UserPermissions {
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
-    editar_basico?: boolean;
+    editar_basico: boolean;
     remover: boolean;
   };
   
@@ -17,7 +17,7 @@ export interface UserPermissions {
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
-    editar_basico?: boolean;
+    editar_basico: boolean;
     remover: boolean;
     finalizar: boolean;
   };
@@ -28,7 +28,7 @@ export interface UserPermissions {
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
-    editar_basico?: boolean;
+    editar_basico: boolean;
     remover: boolean;
   };
   
@@ -38,6 +38,7 @@ export interface UserPermissions {
     visualizar: boolean;
     adicionar: boolean;
     editar: boolean;
+    editar_basico: boolean;
     remover: boolean;
   };
 }

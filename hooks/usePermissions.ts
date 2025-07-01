@@ -21,10 +21,10 @@ export function usePermissions() {
         // Se for admin, tem todas as permissões
         if (user.isAdmin) {
           setPermissions({
-            listaDesejos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
-            listaGarantia: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true, finalizar: true },
-            listaMateriais: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
-            pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true }
+            listaDesejos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
+            listaGarantia: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true, finalizar: true },
+            listaMateriais: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
+            pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true }
           });
           setLoading(false);
           return;
