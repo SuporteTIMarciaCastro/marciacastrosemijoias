@@ -53,7 +53,7 @@ export function usePermissions() {
     loadPermissions();
   }, [user]);
 
-  const can = (module: keyof UserPermissions, action: 'visualizar' | 'adicionar' | 'editar' | 'remover' | 'finalizar') => {
+  const can = (module: keyof UserPermissions, action: 'visualizar' | 'adicionar' | 'editar' | 'editar_basico' | 'remover' | 'finalizar') => {
     if (!user) return false;
     if (user.isAdmin) return true;
     if (!permissions) return false;

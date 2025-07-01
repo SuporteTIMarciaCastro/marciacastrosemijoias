@@ -14,6 +14,7 @@ import { addMaterialRequest, updateMaterialRequest, fetchMaterialRequest } from 
 import { GrauBadge } from "@/components/grau-badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2 } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
 
 interface Material {
   quantidade: string
@@ -39,6 +40,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { user } = useAuth()
 
   useEffect(() => {
     if (itemId && isOpen) {
@@ -301,7 +303,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
                 </Select>
               </div>
 
-              {itemId && (
+              {itemId && user?.permissions?.listaMateriais?.editar && (
                 <div className="space-y-2">
                   <Label htmlFor="status">Status</Label>
                   <Select value={formData.status} onValueChange={(value) => handleSelectChange("status", value)}>
