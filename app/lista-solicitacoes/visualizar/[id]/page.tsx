@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use as usePromise } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +13,8 @@ import { GrauBadge } from "@/components/grau-badge"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft } from "lucide-react"
 
-export default function VisualizarSolicitacaoPage({ params }: { params: { id: string } }) {
+export default function VisualizarSolicitacaoPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = usePromise(params)
   const [solicitacao, setSolicitacao] = useState<MaterialRequest | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { user } = useAuth()
@@ -28,7 +29,7 @@ export default function VisualizarSolicitacaoPage({ params }: { params: { id: st
 
     const loadSolicitacao = async () => {
       try {
-        const data = await fetchMaterialRequest(params.id)
+        const data = await fetchMaterialRequest(id)
         if (data) {
           setSolicitacao(data)
         } else {
@@ -52,7 +53,7 @@ export default function VisualizarSolicitacaoPage({ params }: { params: { id: st
     }
 
     loadSolicitacao()
-  }, [params.id, user, router, toast])
+  }, [id, user, router, toast])
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -127,8 +128,17 @@ export default function VisualizarSolicitacaoPage({ params }: { params: { id: st
                 <div className="border rounded-lg divide-y">
                   {solicitacao.materiais?.map((material, index) => (
                     <div key={index} className="p-4 flex items-center justify-between">
-                      <div>
+                      <div className="flex items-center gap-2">
                         <p className="font-medium">{material.descricao}</p>
+                        {material.status === 'aceito' && (
+                          <Badge className="bg-green-500 text-white">Aceito ✔</Badge>
+                        )}
+                        {material.status === 'recusado' && (
+                          <Badge variant="destructive">Recusado ✖</Badge>
+                        )}
+                        {(!material.status || material.status === undefined) && (
+                          <Badge variant="outline">Pendente</Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         Quantidade: {material.quantidade}

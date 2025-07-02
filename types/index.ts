@@ -47,6 +47,7 @@ export interface MaterialRequest {
   materiais?: {
     quantidade: string
     descricao: string
+    status?: 'aceito' | 'recusado'
   }[]
   createdAt: Date
   updatedAt: Date

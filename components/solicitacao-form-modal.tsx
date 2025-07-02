@@ -19,6 +19,7 @@ import { useAuth } from "@/context/auth-context"
 interface Material {
   quantidade: string
   descricao: string
+  status?: 'aceito' | 'recusado'
 }
 
 interface SolicitacaoFormModalProps {
@@ -36,7 +37,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     grau: "Médio",
     status: "Pendente",
   })
-  const [materiais, setMateriais] = useState<Material[]>([{ quantidade: "", descricao: "" }])
+  const [materiais, setMateriais] = useState<Material[]>([{ quantidade: "", descricao: "", status: undefined }])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
@@ -85,7 +86,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
       grau: "Médio",
       status: "Pendente",
     })
-    setMateriais([{ quantidade: "", descricao: "" }])
+    setMateriais([{ quantidade: "", descricao: "", status: undefined }])
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -103,8 +104,14 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     setMateriais(newMateriais)
   }
 
+  const handleMaterialStatus = (index: number, status: 'aceito' | 'recusado') => {
+    const newMateriais = [...materiais]
+    newMateriais[index].status = status
+    setMateriais(newMateriais)
+  }
+
   const addMaterial = () => {
-    setMateriais([...materiais, { quantidade: "", descricao: "" }])
+    setMateriais([...materiais, { quantidade: "", descricao: "", status: undefined }])
   }
 
   const removeMaterial = (index: number) => {
@@ -130,9 +137,13 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     }
 
     try {
+      const materiaisLimpos = materiais.map(m => {
+        const { status, ...rest } = m
+        return status ? { ...rest, status } : rest
+      })
       const requestData = {
         ...formData,
-        materiais,
+        materiais: materiaisLimpos,
       }
 
       if (itemId) {
@@ -251,18 +262,33 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
                             className="w-full"
                           />
                         </TableCell>
-                        <TableCell>
-                          {materiais.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeMaterial(index)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                        <TableCell className="flex gap-2 items-center justify-center">
+                          {user?.permissions?.listaMateriais?.editar && itemId && (
+                            <>
+                              <Button
+                                type="button"
+                                variant={material.status === 'aceito' ? "default" : "outline"}
+                                size="icon"
+                                onClick={() => handleMaterialStatus(index, 'aceito')}
+                                className="h-8 w-8 p-0"
+                                title="Aceitar"
+                              >
+                                <Plus className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={material.status === 'recusado' ? "default" : "outline"}
+                                size="icon"
+                                onClick={() => handleMaterialStatus(index, 'recusado')}
+                                className="h-8 w-8 p-0"
+                                title="Recusar"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                              </Button>
+                            </>
                           )}
+                          {material.status === 'aceito' && <span className="text-green-600 font-bold ml-2">✔</span>}
+                          {material.status === 'recusado' && <span className="text-red-600 font-bold ml-2">✖</span>}
                         </TableCell>
                       </TableRow>
                     ))}
