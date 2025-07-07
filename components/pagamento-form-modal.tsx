@@ -233,6 +233,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
         justificativa: form.justificativa,
         dadosPagamento: form.dadosPagamento,
         situacao: form.situacao,
+        situacaoOrder: form.situacao === "pendente" ? 0 : 1,
         comprovantePagamento: comprovantePagamentoUrl,
         comprovanteDevolucao: comprovanteDevolucaoUrl,
         boletoPdf: boletoPdfBase64,

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
 import PagamentoFormModal from "@/components/pagamento-form-modal"
+import { QueryDocumentSnapshot } from "firebase/firestore"
 
 export default function ListaPagamentosPage() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
@@ -37,6 +38,9 @@ export default function ListaPagamentosPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [pagamentoToDelete, setPagamentoToDelete] = useState<Pagamento | null>(null)
   const [pagamentoToEdit, setPagamentoToEdit] = useState<string | null>(null)
+  const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
+  const [pageStack, setPageStack] = useState<QueryDocumentSnapshot[]>([])
+  const [isLastPage, setIsLastPage] = useState(false)
   const router = useRouter()
   const { user } = useAuth()
 
@@ -48,17 +52,43 @@ export default function ListaPagamentosPage() {
     loadPagamentos()
   }, [user, router])
 
-  async function loadPagamentos() {
+  async function loadPagamentos(startAfterDoc?: QueryDocumentSnapshot, goingBack = false) {
     setIsLoading(true)
     setError(null)
     try {
-      const data = await fetchPagamentos()
+      const { pagamentos: data, lastDoc: newLastDoc } = await fetchPagamentos(10, startAfterDoc)
       setPagamentos(data)
+      setLastDoc(newLastDoc)
+      setIsLastPage(data.length < 10)
+      if (!goingBack && startAfterDoc) {
+        setPageStack((prev) => [...prev, startAfterDoc])
+      } else if (goingBack) {
+        setPageStack((prev) => prev.slice(0, -1))
+      }
     } catch (err) {
       setError("Erro ao carregar pagamentos.")
       toast.error("Erro ao carregar pagamentos")
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  async function handleNextPage() {
+    if (lastDoc) {
+      await loadPagamentos(lastDoc)
+    }
+  }
+
+  async function handlePrevPage() {
+    if (pageStack.length > 1) {
+      // Remove o cursor atual e pega o anterior
+      const prevStack = [...pageStack]
+      prevStack.pop()
+      const prevCursor = prevStack.length > 0 ? prevStack[prevStack.length - 1] : undefined
+      await loadPagamentos(prevCursor, true)
+    } else {
+      // Primeira página
+      await loadPagamentos(undefined, true)
     }
   }
 
@@ -203,6 +233,15 @@ export default function ListaPagamentosPage() {
                   )}
                 </TableBody>
               </Table>
+              <div className="flex justify-between items-center mt-4 gap-2">
+                <Button onClick={handlePrevPage} disabled={isLoading || pageStack.length === 0} variant="outline">
+                  Página anterior
+                </Button>
+                <span className="text-sm font-medium">Página {pageStack.length + 1}</span>
+                <Button onClick={handleNextPage} disabled={isLoading || isLastPage || !lastDoc} variant="outline">
+                  Próxima página
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore"
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, QueryDocumentSnapshot } from "firebase/firestore"
 import { db } from "./config"
 
 export interface Pagamento {
@@ -11,6 +11,7 @@ export interface Pagamento {
   justificativa: string
   dadosPagamento?: string
   situacao: string
+  situacaoOrder?: number
   comprovantePagamento?: string
   comprovanteDevolucao?: string
   boletoPdf?: string
@@ -36,16 +37,34 @@ export async function addPagamento(pagamento: Omit<Pagamento, "id">) {
   }
 }
 
-export async function fetchPagamentos(): Promise<Pagamento[]> {
+export async function fetchPagamentos(limitValue: number = 10, startAfterDoc?: QueryDocumentSnapshot): Promise<{ pagamentos: Pagamento[], lastDoc: QueryDocumentSnapshot | null }> {
   try {
-    const q = query(collection(db, COLLECTION_NAME), orderBy("createdAt", "desc"))
+    let q
+    if (startAfterDoc) {
+      q = query(
+        collection(db, COLLECTION_NAME),
+        orderBy("situacaoOrder", "asc"),
+        orderBy("createdAt", "desc"),
+        fbLimit(limitValue),
+        fbStartAfter(startAfterDoc)
+      )
+    } else {
+      q = query(
+        collection(db, COLLECTION_NAME),
+        orderBy("situacaoOrder", "asc"),
+        orderBy("createdAt", "desc"),
+        fbLimit(limitValue)
+      )
+    }
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(
+    const pagamentos = querySnapshot.docs.map(
       (doc) => ({
         id: doc.id,
         ...doc.data(),
       }) as Pagamento
     )
+    const lastDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null
+    return { pagamentos, lastDoc }
   } catch (error) {
     console.error("Erro ao buscar pagamentos:", error)
     throw error

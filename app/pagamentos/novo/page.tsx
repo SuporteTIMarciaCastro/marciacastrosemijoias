@@ -174,6 +174,7 @@ export default function NovoPagamentoPage() {
         justificativa: form.justificativa,
         dadosPagamento: form.dadosPagamento,
         situacao: "pendente",
+        situacaoOrder: 0,
         comprovantePagamento: comprovantePagamentoUrl,
         boletoPdf: boletoPdfUrl,
         dataVencimento: form.dataVencimento,
