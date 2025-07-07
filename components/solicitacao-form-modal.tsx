@@ -13,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { addMaterialRequest, updateMaterialRequest, fetchMaterialRequest } from "@/lib/firebase/material-requests"
 import { GrauBadge } from "@/components/grau-badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Trash2 } from "lucide-react"
+import { Check, Ban, Plus } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 
 interface Material {
@@ -104,7 +104,7 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     setMateriais(newMateriais)
   }
 
-  const handleMaterialStatus = (index: number, status: 'aceito' | 'recusado') => {
+  const handleMaterialStatus = (index: number, status: 'aceito' | 'recusado' | undefined) => {
     const newMateriais = [...materiais]
     newMateriais[index].status = status
     setMateriais(newMateriais)
@@ -267,23 +267,23 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
                             <>
                               <Button
                                 type="button"
-                                variant={material.status === 'aceito' ? "default" : "outline"}
+                                variant="outline"
                                 size="icon"
-                                onClick={() => handleMaterialStatus(index, 'aceito')}
-                                className="h-8 w-8 p-0"
+                                onClick={() => handleMaterialStatus(index, material.status === 'aceito' ? undefined : 'aceito')}
+                                className={`h-8 w-8 p-0 ${material.status === 'aceito' ? 'bg-gray-200' : ''}`}
                                 title="Aceitar"
                               >
-                                <Plus className="h-4 w-4 text-green-600" />
+                                <Check className="h-4 w-4 text-green-600" />
                               </Button>
                               <Button
                                 type="button"
-                                variant={material.status === 'recusado' ? "default" : "outline"}
+                                variant="outline"
                                 size="icon"
-                                onClick={() => handleMaterialStatus(index, 'recusado')}
-                                className="h-8 w-8 p-0"
+                                onClick={() => handleMaterialStatus(index, material.status === 'recusado' ? undefined : 'recusado')}
+                                className={`h-8 w-8 p-0 ${material.status === 'recusado' ? 'bg-gray-200' : ''}`}
                                 title="Recusar"
                               >
-                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <Ban className="h-4 w-4 text-red-500" />
                               </Button>
                             </>
                           )}
