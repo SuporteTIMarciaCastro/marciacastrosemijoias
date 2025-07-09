@@ -125,6 +125,17 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Validação do setor
+    if (!formData.setor || formData.setor.trim() === "") {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione um setor",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     // Validação dos materiais
     if (materiais.some(m => !m.quantidade || !m.descricao)) {
       toast({
@@ -198,13 +209,13 @@ export default function SolicitacaoFormModal({ isOpen, onClose, itemId, onSucces
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="setor">Setor</Label>
+              <Label htmlFor="setor">Setor *</Label>
               <Select
                 value={formData.setor}
                 onValueChange={(value) => handleSelectChange("setor", value)}
                 required
               >
-                <SelectTrigger>
+                <SelectTrigger className={!formData.setor ? "border-red-500" : ""}>
                   <SelectValue placeholder="Selecione um setor" />
                 </SelectTrigger>
                 <SelectContent>
