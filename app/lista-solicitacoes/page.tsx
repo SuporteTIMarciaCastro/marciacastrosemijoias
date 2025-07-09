@@ -143,10 +143,10 @@ export default function ListaSolicitacoesPage() {
   })
 
   // Obter lista única de setores para o filtro
-  const setores = [...new Set(materialRequests.map(request => request.setor))].sort()
+  const setores = [...new Set(materialRequests.map(request => request.setor).filter(setor => setor && setor.trim() !== ""))].sort()
 
   // Obter lista única de status para o filtro
-  const statusOptions = [...new Set(materialRequests.map(request => request.status))].sort()
+  const statusOptions = [...new Set(materialRequests.map(request => request.status).filter(status => status && status.trim() !== ""))].sort()
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -216,7 +216,7 @@ export default function ListaSolicitacoesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os setores</SelectItem>
-                    {setores.map((setor) => (
+                    {setores.filter(setor => setor && setor.trim() !== "").map((setor) => (
                       <SelectItem key={setor} value={setor}>
                         {setor}
                       </SelectItem>
@@ -229,7 +229,7 @@ export default function ListaSolicitacoesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos os status</SelectItem>
-                    {statusOptions.map((status) => (
+                    {statusOptions.filter(status => status && status.trim() !== "").map((status) => (
                       <SelectItem key={status} value={status}>
                         {status}
                       </SelectItem>
