@@ -190,7 +190,7 @@ export default function ListaDesejosPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todas">Todas as lojas</SelectItem>
-                    {lojasDestino.map((loja) => (
+                    {lojasDestino.filter(loja => loja && loja.trim() !== "").map((loja) => (
                       <SelectItem key={loja} value={loja}>
                         {loja}
                       </SelectItem>

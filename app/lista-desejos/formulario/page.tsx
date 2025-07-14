@@ -101,6 +101,17 @@ export default function FormularioDesejoPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Validação de todos os campos obrigatórios
+    if (!formData.nome.trim() || !formData.celular.trim() || !formData.email.trim() || !formData.produto.trim() || !formData.jaComprou.trim() || !formData.lojaDestino.trim() || !formData.descricao.trim()) {
+      toast({
+        title: "Erro",
+        description: "Por favor, preencha todos os campos obrigatórios.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
     if (!validateCelular(formData.celular)) {
       setCelularError("O celular deve estar no formato (XX) XXXXX-XXXX")
       setIsSubmitting(false)
@@ -248,6 +259,7 @@ export default function FormularioDesejoPage() {
                     <Select
                       value={formData.jaComprou}
                       onValueChange={(value) => handleSelectChange("jaComprou", value)}
+                      required
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
@@ -313,6 +325,7 @@ export default function FormularioDesejoPage() {
                       value={formData.descricao}
                       onChange={handleInputChange}
                       className="min-h-[100px]"
+                      required
                     />
                   </div>
 
