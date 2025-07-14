@@ -32,6 +32,9 @@ export default function FormularioDesejoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
   const [celularError, setCelularError] = useState("")
+  const [jaComprouError, setJaComprouError] = useState("");
+  const [lojaDestinoError, setLojaDestinoError] = useState("");
+  const [imagemError, setImagemError] = useState("");
   const router = useRouter()
   const { toast } = useToast()
 
@@ -101,8 +104,31 @@ export default function FormularioDesejoPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
+    let hasError = false;
+
+    if (!formData.jaComprou.trim()) {
+      setJaComprouError("Selecione uma opção!");
+      hasError = true;
+    } else {
+      setJaComprouError("");
+    }
+
+    if (!formData.lojaDestino.trim()) {
+      setLojaDestinoError("Selecione uma loja!");
+      hasError = true;
+    } else {
+      setLojaDestinoError("");
+    }
+
+    if (!selectedFile) {
+      setImagemError("Selecione uma imagem do produto!");
+      hasError = true;
+    } else {
+      setImagemError("");
+    }
+
     // Validação de todos os campos obrigatórios
-    if (!formData.nome.trim() || !formData.celular.trim() || !formData.email.trim() || !formData.produto.trim() || !formData.jaComprou.trim() || !formData.lojaDestino.trim() || !formData.descricao.trim()) {
+    if (!formData.nome.trim() || !formData.celular.trim() || !formData.email.trim() || !formData.produto.trim() || !formData.descricao.trim()) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios.",
@@ -110,6 +136,11 @@ export default function FormularioDesejoPage() {
       })
       setIsSubmitting(false)
       return
+    }
+
+    if (hasError) {
+      setIsSubmitting(false);
+      return;
     }
 
     if (!validateCelular(formData.celular)) {
@@ -258,10 +289,13 @@ export default function FormularioDesejoPage() {
                     <Label htmlFor="jaComprou">Já comprou na loja?</Label>
                     <Select
                       value={formData.jaComprou}
-                      onValueChange={(value) => handleSelectChange("jaComprou", value)}
+                      onValueChange={(value) => {
+                        handleSelectChange("jaComprou", value);
+                        setJaComprouError("");
+                      }}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={jaComprouError ? "border-red-500" : ""}>
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
@@ -269,16 +303,22 @@ export default function FormularioDesejoPage() {
                         <SelectItem value="Não">Não</SelectItem>
                       </SelectContent>
                     </Select>
+                    {jaComprouError && (
+                      <span className="text-red-500 text-xs">{jaComprouError}</span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="lojaDestino">Enviar solicitação para a seguinte loja:</Label>
                     <Select
                       value={formData.lojaDestino}
-                      onValueChange={(value) => handleSelectChange("lojaDestino", value)}
+                      onValueChange={(value) => {
+                        handleSelectChange("lojaDestino", value);
+                        setLojaDestinoError("");
+                      }}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className={lojaDestinoError ? "border-red-500" : ""}>
                         <SelectValue placeholder="Selecione uma loja" />
                       </SelectTrigger>
                       <SelectContent>
@@ -289,6 +329,9 @@ export default function FormularioDesejoPage() {
                         <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
                       </SelectContent>
                     </Select>
+                    {lojaDestinoError && (
+                      <span className="text-red-500 text-xs">{lojaDestinoError}</span>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -299,8 +342,12 @@ export default function FormularioDesejoPage() {
                         type="file"
                         accept="image/*"
                         onChange={handleFileSelect}
-                        className="cursor-pointer"
+                        className={`cursor-pointer${imagemError ? " border-red-500" : ""}`}
+                        required
                       />
+                      {imagemError && (
+                        <span className="text-red-500 text-xs">{imagemError}</span>
+                      )}
                       {imagePreview && (
                         <div className="mt-2">
                           <p className="text-sm text-gray-500 mb-1">Preview:</p>
