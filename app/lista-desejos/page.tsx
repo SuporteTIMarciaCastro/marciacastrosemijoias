@@ -22,6 +22,15 @@ import {
 import { MoreHorizontal, Copy, ExternalLink, Filter, X } from "lucide-react"
 import { ActionsMenu } from "@/components/actions-menu"
 
+// Função utilitária para converter URL do Google Drive
+function getGoogleDriveEmbedUrl(url: string): string {
+  const fileIdMatch = url.match(/id=([a-zA-Z0-9_-]+)/) || url.match(/d\/([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/uc?id=${fileIdMatch[1]}`;
+  }
+  return url;
+}
+
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -265,7 +274,7 @@ export default function ListaDesejosPage() {
                           {item.imagemUrl ? (
                             <div className="relative h-16 w-16">
                               <Image
-                                src={item.imagemUrl}
+                                src={`/api/image-proxy?url=${encodeURIComponent(getGoogleDriveEmbedUrl(item.imagemUrl))}`}
                                 alt={item.produto}
                                 fill
                                 className="object-cover rounded-md"
