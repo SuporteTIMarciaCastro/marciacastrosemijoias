@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -31,12 +31,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ActionsMenu } from "@/components/actions-menu"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination"
 
 export default function ListaGarantiaPage() {
   const [warrantyItems, setWarrantyItems] = useState<WarrantyItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [lojaFilter, setLojaFilter] = useState("todas")
   const [finalizadaFilter, setFinalizadaFilter] = useState("todas")
+  const [statusFilter, setStatusFilter] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined)
@@ -45,6 +54,11 @@ export default function ListaGarantiaPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [lastDoc, setLastDoc] = useState<any>(null)
+  const [pageDocs, setPageDocs] = useState<any[]>([])
+  const [totalItems, setTotalItems] = useState<number | null>(null)
 
   const loadWarrantyItems = async () => {
     setIsLoading(true)
@@ -70,6 +84,60 @@ export default function ListaGarantiaPage() {
 
     loadWarrantyItems()
   }, [user, router, toast])
+
+  // Carregar total de itens (apenas para saber o total de páginas)
+  useEffect(() => {
+    if (!user) return
+    const fetchTotal = async () => {
+      try {
+        const all = await fetchWarrantyItems()
+        setTotalItems(all.length)
+      } catch {}
+    }
+    fetchTotal()
+  }, [user])
+
+  // Carregar página de garantias
+  useEffect(() => {
+    if (!user) return
+    setIsLoading(true)
+    const loadPage = async () => {
+      try {
+        let startAfterDoc = null
+        if (currentPage > 1 && pageDocs[currentPage - 2]) {
+          startAfterDoc = pageDocs[currentPage - 2]
+        }
+        let result
+        if (searchTerm.trim()) {
+          result = await fetchWarrantyItemsPaginatedByName(searchTerm.trim(), pageSize, startAfterDoc)
+        } else {
+          result = await fetchWarrantyItemsPaginated(pageSize, startAfterDoc)
+        }
+        setWarrantyItems(result.items)
+        // Salva o doc para navegação
+        const newPageDocs = [...pageDocs]
+        newPageDocs[currentPage - 1] = result.lastDoc
+        setPageDocs(newPageDocs)
+        setLastDoc(result.lastDoc)
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível carregar a lista de garantias",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentPage, searchTerm])
+
+  // Sempre que filtros mudarem, resetar paginação
+  useEffect(() => {
+    setCurrentPage(1)
+    setPageDocs([])
+  }, [searchTerm, lojaFilter, finalizadaFilter, statusFilter])
 
   const handleDelete = async (id: string) => {
     setItemToDelete(null)
@@ -251,10 +319,22 @@ export default function ListaGarantiaPage() {
     doc.save(`garantia-${item.id}.pdf`);
   };
 
+  const statusOptions = [
+    "Recebido loja",
+    "Recebido comercial",
+    "Recebido fábrica",
+    "Devolvido comercial",
+    "Devolvido loja",
+    "Devolvido cliente",
+    "Extraviada-crédito cliente",
+    "Negado"
+  ]
+
   const clearFilters = () => {
     setSearchTerm("")
     setLojaFilter("todas")
     setFinalizadaFilter("todas")
+    setStatusFilter("todos")
   }
 
   const filteredItems = warrantyItems.filter((item) => {
@@ -271,11 +351,17 @@ export default function ListaGarantiaPage() {
       (finalizadaFilter === "sim" && item.finalized) ||
       (finalizadaFilter === "nao" && !item.finalized)
     
-    return matchesSearch && matchesLoja && matchesFinalizada
+    const matchesStatus =
+      statusFilter === "todos" || item.status === statusFilter
+    
+    return matchesSearch && matchesLoja && matchesFinalizada && matchesStatus
   })
 
   // Obter lista única de lojas para o filtro
   const lojas = [...new Set(warrantyItems.map(item => item.loja))].sort()
+
+  // Paginação
+  const totalPages = totalItems ? Math.ceil(totalItems / pageSize) : 1
 
   if (!user) {
     return null
@@ -300,7 +386,7 @@ export default function ListaGarantiaPage() {
                 <Filter className="h-4 w-4" />
                 Filtros
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <Input
                   placeholder="Pesquisar por nome ou status..."
                   value={searchTerm}
@@ -328,6 +414,19 @@ export default function ListaGarantiaPage() {
                     <SelectItem value="todas">Todas</SelectItem>
                     <SelectItem value="sim">Finalizada</SelectItem>
                     <SelectItem value="nao">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os status</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button 
@@ -369,9 +468,9 @@ export default function ListaGarantiaPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredItems.map((item, idx) => (
+                    filteredItems.slice(0, pageSize).map((item, idx) => (
                       <tr key={item.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="py-3 px-4">{idx + 1}</td>
+                        <td className="py-3 px-4">{(currentPage - 1) * pageSize + idx + 1}</td>
                         <td className="py-3 px-4">
                           {item.finalized ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -383,7 +482,7 @@ export default function ListaGarantiaPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4">{item.nome}</td>
+                        <td className="py-3 px-4">{item.nome.toUpperCase()}</td>
                         <td className="py-3 px-4">{item.whatsapp || "-"}</td>
                         <td className="py-3 px-4">{item.dataValidade}</td>
                         <td className="py-3 px-4">
@@ -407,6 +506,38 @@ export default function ListaGarantiaPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+            {/* Paginação */}
+            <div className="mt-6 flex justify-center">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={e => {
+                        e.preventDefault()
+                        if (currentPage > 1) setCurrentPage(currentPage - 1)
+                      }}
+                      aria-disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#" isActive>
+                      {currentPage}
+                    </PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={e => {
+                        e.preventDefault()
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+                      }}
+                      aria-disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </CardContent>
         </Card>

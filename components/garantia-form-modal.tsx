@@ -218,6 +218,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
       const dataToSave = {
         ...formData,
+        nome: formData.nome.trimStart().toLowerCase(),
         vendedor: formData.vendedor,
         imagemPecas: imagemPecasUrls.length > 0 ? imagemPecasUrls.join(",") : (originalItem?.imagemPecas || ""),
         notaCompra: notaCompraUrl || (originalItem?.notaCompra || ""),

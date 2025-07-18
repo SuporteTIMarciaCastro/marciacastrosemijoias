@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy } from "firebase/firestore"
+import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, startAt as fbStartAt, endAt as fbEndAt, QueryDocumentSnapshot } from "firebase/firestore"
 import { db } from "./config"
 import type { WarrantyItem } from "@/types"
 
@@ -93,5 +93,87 @@ export async function finalizeWarrantyItem(id: string) {
   } catch (error) {
     console.error("Erro ao finalizar garantia:", error)
     throw error
+  }
+}
+
+// Buscar garantias paginadas
+export async function fetchWarrantyItemsPaginated(limitValue: number = 20, startAfterDoc?: QueryDocumentSnapshot): Promise<{ items: WarrantyItem[], lastDoc: QueryDocumentSnapshot | null }> {
+  try {
+    let q
+    if (startAfterDoc) {
+      q = query(
+        collection(db, COLLECTION_NAME),
+        orderBy("createdAt", "desc"),
+        fbLimit(limitValue),
+        fbStartAfter(startAfterDoc)
+      )
+    } else {
+      q = query(
+        collection(db, COLLECTION_NAME),
+        orderBy("createdAt", "desc"),
+        fbLimit(limitValue)
+      )
+    }
+    const querySnapshot = await getDocs(q)
+    const items = querySnapshot.docs.map(
+      (doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as WarrantyItem
+    )
+    const lastDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null
+    return { items, lastDoc }
+  } catch (error) {
+    console.error("Erro ao buscar garantias paginadas:", error)
+    throw error
+  }
+}
+
+// Buscar garantias paginadas filtrando por nome (prefixo) - busca real usando o campo 'nome'
+export async function fetchWarrantyItemsPaginatedByName(searchTerm: string, limitValue: number = 20, startAfterDoc?: QueryDocumentSnapshot): Promise<{ items: WarrantyItem[], lastDoc: QueryDocumentSnapshot | null }> {
+  try {
+    const col = collection(db, COLLECTION_NAME);
+    const searchTermLower = searchTerm.toLowerCase();
+    let constraints = [
+      orderBy("nome"),
+      fbStartAt(searchTermLower),
+      fbEndAt(searchTermLower + '\uf8ff'),
+      fbLimit(limitValue)
+    ];
+    if (startAfterDoc) {
+      constraints.push(fbStartAfter(startAfterDoc));
+    }
+    const q = query(col, ...constraints);
+    const querySnapshot = await getDocs(q);
+    const items = querySnapshot.docs.map(
+      (doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as WarrantyItem
+    );
+    const lastDoc = querySnapshot.docs.length > 0 ? querySnapshot.docs[querySnapshot.docs.length - 1] : null;
+    return { items, lastDoc };
+  } catch (error) {
+    console.error("Erro ao buscar garantias paginadas por nome:", error);
+    throw error;
+  }
+}
+
+// Atualizar um documento de garantia para incluir o campo nomeLower
+export async function updateOneWarrantyWithNomeLower(id: string) {
+  try {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+      throw new Error("Documento não encontrado");
+    }
+    const data = docSnap.data();
+    const nome = data.nome || "";
+    const nomeLower = nome.toLowerCase();
+    await updateDoc(docRef, { nomeLower });
+    return { id, nome, nomeLower };
+  } catch (error) {
+    console.error("Erro ao atualizar nomeLower:", error);
+    throw error;
   }
 }
