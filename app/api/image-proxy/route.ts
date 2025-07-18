@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
     }
 
     const contentType = response.headers.get('Content-Type')
-    console.log('Content-Type recebido do Google Drive:', contentType)
+    // console.log('Content-Type recebido do Google Drive:', contentType)
 
     const imageBlob = await response.blob()
-    console.log('Tamanho do Blob da imagem (bytes):', imageBlob.size)
+    // console.log('Tamanho do Blob da imagem (bytes):', imageBlob.size)
 
     if (imageBlob.size === 0) {
       console.warn('Blob de imagem vazio recebido do Google Drive.')

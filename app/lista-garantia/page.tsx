@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -107,12 +107,14 @@ export default function ListaGarantiaPage() {
         if (currentPage > 1 && pageDocs[currentPage - 2]) {
           startAfterDoc = pageDocs[currentPage - 2]
         }
-        let result
-        if (searchTerm.trim()) {
-          result = await fetchWarrantyItemsPaginatedByName(searchTerm.trim(), pageSize, startAfterDoc)
-        } else {
-          result = await fetchWarrantyItemsPaginated(pageSize, startAfterDoc)
-        }
+        const result = await fetchWarrantyItemsPaginatedWithFilters({
+          searchTerm,
+          loja: lojaFilter,
+          status: statusFilter,
+          finalizada: finalizadaFilter,
+          limitValue: pageSize,
+          startAfterDoc
+        })
         setWarrantyItems(result.items)
         // Salva o doc para navegação
         const newPageDocs = [...pageDocs]
@@ -131,7 +133,7 @@ export default function ListaGarantiaPage() {
     }
     loadPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentPage, searchTerm])
+  }, [user, currentPage, searchTerm, lojaFilter, statusFilter, finalizadaFilter])
 
   // Sempre que filtros mudarem, resetar paginação
   useEffect(() => {
@@ -337,25 +339,9 @@ export default function ListaGarantiaPage() {
     setStatusFilter("todos")
   }
 
-  const filteredItems = warrantyItems.filter((item) => {
-    const matchesSearch = 
-      item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.status.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesLoja = 
-      lojaFilter === "todas" || 
-      item.loja.toLowerCase().includes(lojaFilter.toLowerCase())
-    
-    const matchesFinalizada = 
-      finalizadaFilter === "todas" || 
-      (finalizadaFilter === "sim" && item.finalized) ||
-      (finalizadaFilter === "nao" && !item.finalized)
-    
-    const matchesStatus =
-      statusFilter === "todos" || item.status === statusFilter
-    
-    return matchesSearch && matchesLoja && matchesFinalizada && matchesStatus
-  })
+  // Remover filtro frontend, warrantyItems já está filtrado
+  // const filteredItems = warrantyItems.filter(...)
+  const filteredItems = warrantyItems
 
   // Obter lista única de lojas para o filtro
   const lojas = [...new Set(warrantyItems.map(item => item.loja))].sort()
