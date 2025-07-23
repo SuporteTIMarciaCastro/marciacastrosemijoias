@@ -27,9 +27,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import PagamentoFormModal from "@/components/pagamento-form-modal"
 import { QueryDocumentSnapshot } from "firebase/firestore"
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 
 export default function ListaPagamentosPage() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
@@ -43,6 +44,7 @@ export default function ListaPagamentosPage() {
   const [isLastPage, setIsLastPage] = useState(false)
   const router = useRouter()
   const { user } = useAuth()
+  const [order, setOrder] = useState<'desc' | 'asc'>("desc")
 
   useEffect(() => {
     if (!user) {
@@ -111,6 +113,16 @@ export default function ListaPagamentosPage() {
       p.situacao?.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
+  // Ordenação dos pagamentos filtrados
+  const orderedPagamentos = [...filteredPagamentos].sort((a, b) => {
+    if (!a.createdAt || !b.createdAt) return 0
+    if (order === "asc") {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    } else {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    }
+  })
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "autorizado":
@@ -164,7 +176,11 @@ export default function ListaPagamentosPage() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Finalidade</TableHead>
                     <TableHead>Situação</TableHead>
-                    <TableHead>Data de Vencimento</TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}>Data de Vencimento
+                      <span className="inline-block align-middle ml-1">
+                        {order === 'asc' ? <ChevronUp className="w-4 h-4 inline" /> : <ChevronDown className="w-4 h-4 inline" />}
+                      </span>
+                    </TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -182,7 +198,7 @@ export default function ListaPagamentosPage() {
                       <TableCell colSpan={6} className="text-center py-4">Nenhum pagamento encontrado</TableCell>
                     </TableRow>
                   ) : (
-                    filteredPagamentos.map((p) => (
+                    orderedPagamentos.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell>{p.criadoPor || '-'}</TableCell>
                         <TableCell>{p.tipo}</TableCell>
