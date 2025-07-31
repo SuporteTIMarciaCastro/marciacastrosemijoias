@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem, finalizeWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, deleteWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { ActionsMenu } from "@/components/actions-menu"
+import { FinalizeWarrantyModal } from "@/components/finalize-warranty-modal"
 import {
   Pagination,
   PaginationContent,
@@ -50,7 +51,8 @@ export default function ListaGarantiaPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>(undefined)
   const [itemToDelete, setItemToDelete] = useState<string | null>(null)
-  const [itemToFinalize, setItemToFinalize] = useState<string | null>(null)
+  const [finalizeModalOpen, setFinalizeModalOpen] = useState(false)
+  const [selectedWarrantyItem, setSelectedWarrantyItem] = useState<WarrantyItem | null>(null)
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -160,57 +162,44 @@ export default function ListaGarantiaPage() {
   }
 
   const handleFinalize = async (id: string) => {
-    setItemToFinalize(id)
+    const item = warrantyItems.find(w => w.id === id)
+    if (item) {
+      setSelectedWarrantyItem(item)
+      setFinalizeModalOpen(true)
+    }
   }
 
-  const confirmFinalize = async () => {
-    if (!itemToFinalize) return
-    try {
-      await finalizeWarrantyItem(itemToFinalize)
-      setWarrantyItems(warrantyItems.map((item) => 
-        item.id === itemToFinalize ? { ...item, finalized: true } : item
-      ))
-      // Buscar dados completos da garantia
-      const item = await fetchWarrantyItem(itemToFinalize)
-      if (item && item.email) {
-        try {
-          await fetch('/api/send-email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: item.email,
-              nome: item.nome,
-              status: 'Finalizada',
-              loja: item.loja,
-              garantiaId: item.id,
-              dataCompra: item.dataCompra,
-              dataValidade: item.dataValidade,
-              descricaoPecas: item.descricaoPecas,
-              observacao: item.observacao,
-              notaCompra: item.notaCompra,
-              imagemPecas: item.imagemPecas,
-              vendedor: item.vendedor,
-              finalizado: true,
-              mensagemExtra: 'Sua solicitação de garantia foi encerrada. Caso tenha dúvidas, entre em contato com a loja.'
-            })
+  const handleFinalizeSuccess = async () => {
+    // Recarregar a lista de garantias
+    await loadWarrantyItems()
+    
+    // Enviar email se necessário
+    if (selectedWarrantyItem && selectedWarrantyItem.email) {
+      try {
+        await fetch('/api/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: selectedWarrantyItem.email,
+            nome: selectedWarrantyItem.nome,
+            status: 'Finalizada',
+            loja: selectedWarrantyItem.loja,
+            garantiaId: selectedWarrantyItem.id,
+            dataCompra: selectedWarrantyItem.dataCompra,
+            dataValidade: selectedWarrantyItem.dataValidade,
+            descricaoPecas: selectedWarrantyItem.descricaoPecas,
+            observacao: selectedWarrantyItem.observacao,
+            notaCompra: selectedWarrantyItem.notaCompra,
+            imagemPecas: selectedWarrantyItem.imagemPecas,
+            vendedor: selectedWarrantyItem.vendedor,
+            finalizado: true,
+            mensagemExtra: 'Sua solicitação de garantia foi encerrada. Caso tenha dúvidas, entre em contato com a loja.'
           })
-        } catch (e) {
-          // Não interrompe o fluxo, apenas loga
-          console.error('Erro ao enviar email de finalização', e)
-        }
+        })
+      } catch (e) {
+        // Não interrompe o fluxo, apenas loga
+        console.error('Erro ao enviar email de finalização', e)
       }
-      toast({
-        title: "Sucesso",
-        description: "Garantia finalizada com sucesso",
-      })
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível finalizar a garantia",
-        variant: "destructive",
-      })
-    } finally {
-      setItemToFinalize(null)
     }
   }
 
@@ -553,21 +542,16 @@ export default function ListaGarantiaPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Diálogo de confirmação para finalização */}
-      <AlertDialog open={!!itemToFinalize} onOpenChange={() => setItemToFinalize(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar finalização</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja finalizar esta garantia? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmFinalize}>Finalizar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Modal de Finalização */}
+      <FinalizeWarrantyModal
+        isOpen={finalizeModalOpen}
+        onClose={() => {
+          setFinalizeModalOpen(false)
+          setSelectedWarrantyItem(null)
+        }}
+        warrantyItem={selectedWarrantyItem}
+        onSuccess={handleFinalizeSuccess}
+      />
     </div>
   )
 }
