@@ -44,9 +44,7 @@ export function ActionsMenu({
   const { user } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    console.log("Dados do usuário:", user)
-  }, [user])
+
 
   const handleView = () => {
     if (onView) {

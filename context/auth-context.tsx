@@ -20,6 +20,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Cache simples em memória
+const userCache = new Map<string, User>()
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,17 +31,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          // Verifica se o usuário já está em cache
+          const cachedUser = userCache.get(firebaseUser.uid)
+          
+          if (cachedUser) {
+            // Usa dados do cache
+            setUser(cachedUser)
+            setLoading(false)
+            return
+          }
+
           // Busca as informações adicionais do usuário no Firestore
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid))
           if (userDoc.exists()) {
             const userData = userDoc.data() as User
-            setUser({
+            const newUser = {
               id: firebaseUser.uid,
               email: firebaseUser.email!,
               name: userData.name,
               isAdmin: userData.isAdmin,
               permissions: userData.permissions
-            })
+            }
+            
+            // Adiciona ao cache
+            userCache.set(firebaseUser.uid, newUser)
+            setUser(newUser)
           } else {
             throw new Error('Usuário não encontrado no sistema. Entre em contato com o administrador.')
           }
@@ -61,6 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
+      // Verifica se o usuário já está em cache
+      const cachedUser = userCache.get(user.uid)
+      
+      if (cachedUser) {
+        // Usa dados do cache
+        setUser(cachedUser)
+        return
+      }
+
       // Busca o documento do usuário no Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid))
       
@@ -69,13 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const userData = userDoc.data() as User
-      setUser({
+      const newUser = {
         id: user.uid,
         email: user.email!,
         name: userData.name,
         isAdmin: userData.isAdmin,
         permissions: userData.permissions
-      })
+      }
+      
+      // Adiciona ao cache
+      userCache.set(user.uid, newUser)
+      setUser(newUser)
     } catch (error: any) {
       console.error('Erro no login:', error)
       throw error
@@ -86,6 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signOut(auth)
       setUser(null)
+      // Limpa o cache ao fazer logout
+      userCache.clear()
     } catch (error) {
       console.error('Erro no logout:', error)
       throw error
