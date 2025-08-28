@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWishlistItems, deleteWishlistItem, markWishlistItemAsAvisado } from "@/lib/firebase/wishlist"
+import { fetchWishlistItems, deleteWishlistItem, markWishlistItemAsAvisado, fetchWishlistItemsPaginated, fetchWishlistItemsPaginatedWithFilters } from "@/lib/firebase/wishlist"
 import type { WishlistItem } from "@/types"
 import Header from "@/components/header"
 import {
@@ -21,6 +21,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Copy, ExternalLink, Filter, X } from "lucide-react"
 import { ActionsMenu } from "@/components/actions-menu"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination"
 
 // Função utilitária para converter URL do Google Drive
 function getGoogleDriveEmbedUrl(url: string): string {
@@ -37,21 +45,50 @@ export default function ListaDesejosPage() {
   const [lojaDestinoFilter, setLojaDestinoFilter] = useState("todas")
   const [avisadoFilter, setAvisadoFilter] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(20)
+  const [lastDoc, setLastDoc] = useState<any>(null)
+  const [pageDocs, setPageDocs] = useState<any[]>([])
+  const [totalItems, setTotalItems] = useState<number | null>(null)
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
 
-    const loadWishlistItems = async () => {
+
+  // Carregar página de itens da lista de desejos
+  useEffect(() => {
+    if (!user) return
+    setIsLoading(true)
+    const loadPage = async () => {
       try {
-        const items = await fetchWishlistItems()
-        setWishlistItems(items)
+        let startAfterDoc = null
+        if (currentPage > 1 && pageDocs[currentPage - 2]) {
+          startAfterDoc = pageDocs[currentPage - 2]
+        }
+        const result = await fetchWishlistItemsPaginatedWithFilters({
+          searchTerm,
+          lojaDestino: lojaDestinoFilter,
+          avisado: avisadoFilter,
+          limitValue: pageSize,
+          startAfterDoc
+        })
+        setWishlistItems(result.items)
+        setTotalItems(result.totalCount)
+        // Salva o doc para navegação
+        const newPageDocs = [...pageDocs]
+        newPageDocs[currentPage - 1] = result.lastDoc
+        setPageDocs(newPageDocs)
+        setLastDoc(result.lastDoc)
       } catch (error) {
+        console.error("Erro ao carregar página:", error);
+        
+        // Verificar se é erro de índice faltando
+        if (error instanceof Error && error.message.includes('indexes')) {
+          console.log("🔥 CRIE OS ÍNDICES DO FIREBASE AQUI: https://console.firebase.google.com");
+          console.log("📋 Instruções completas em: firebase-indexes.md");
+        }
+        
         toast({
           title: "Erro",
           description: "Não foi possível carregar a lista de desejos",
@@ -61,9 +98,15 @@ export default function ListaDesejosPage() {
         setIsLoading(false)
       }
     }
+    loadPage()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentPage, searchTerm, lojaDestinoFilter, avisadoFilter])
 
-    loadWishlistItems()
-  }, [user, router, toast])
+  // Sempre que filtros mudarem, resetar paginação
+  useEffect(() => {
+    setCurrentPage(1)
+    setPageDocs([])
+  }, [searchTerm, lojaDestinoFilter, avisadoFilter])
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Tem certeza que deseja remover este item da lista de desejos?")) {
@@ -126,25 +169,15 @@ export default function ListaDesejosPage() {
     setAvisadoFilter("todos")
   }
 
-  const filteredItems = wishlistItems.filter((item) => {
-    const matchesSearch = 
-      item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.produto.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesLojaDestino = 
-      lojaDestinoFilter === "todas" || 
-      item.lojaDestino.toLowerCase().includes(lojaDestinoFilter.toLowerCase())
-    
-    const matchesAvisado = 
-      avisadoFilter === "todos" || 
-      (avisadoFilter === "sim" && item.avisado) ||
-      (avisadoFilter === "nao" && !item.avisado)
-    
-    return matchesSearch && matchesLojaDestino && matchesAvisado
-  })
-
   // Obter lista única de lojas destino para o filtro
   const lojasDestino = [...new Set(wishlistItems.map(item => item.lojaDestino))].sort()
+
+  // Calcular total de páginas
+  const totalPages = totalItems ? Math.ceil(totalItems / pageSize) : 1
+  
+  // Calcular informações da paginação
+  const startItem = totalItems ? (currentPage - 1) * pageSize + 1 : 0
+  const endItem = totalItems ? Math.min(currentPage * pageSize, totalItems) : 0
 
   if (!user) {
     return null
@@ -237,6 +270,7 @@ export default function ListaDesejosPage() {
                     <TableHead>Celular</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead>Loja Destino</TableHead>
+                    <TableHead>Data Criação</TableHead>
                     <TableHead>Imagem</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Ações</TableHead>
@@ -245,18 +279,18 @@ export default function ListaDesejosPage() {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-4">
+                      <TableCell colSpan={10} className="text-center py-4">
                         Carregando...
                       </TableCell>
                     </TableRow>
-                  ) : filteredItems.length === 0 ? (
+                  ) : wishlistItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-4">
+                      <TableCell colSpan={10} className="text-center py-4">
                         Nenhum item encontrado
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredItems.map((item, index) => (
+                    wishlistItems.map((item: WishlistItem, index: number) => (
                       <TableRow key={item.id}>
                         <TableCell>{index + 1}</TableCell>
                         <TableCell>
@@ -270,6 +304,17 @@ export default function ListaDesejosPage() {
                         <TableCell>{item.celular}</TableCell>
                         <TableCell>{item.produto}</TableCell>
                         <TableCell>{item.lojaDestino}</TableCell>
+                        <TableCell>
+                          {item.createdAt ? (
+                            new Date(item.createdAt).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })
+                          ) : (
+                            'Data não disponível'
+                          )}
+                        </TableCell>
                         <TableCell>
                           {item.imagemUrl ? (
                             <div className="relative h-16 w-16">
@@ -301,6 +346,41 @@ export default function ListaDesejosPage() {
                   )}
                 </TableBody>
               </Table>
+            </div>
+            {/* Paginação */}
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                {totalItems ? `Mostrando ${startItem} a ${endItem} de ${totalItems} itens` : 'Carregando...'}
+              </div>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={e => {
+                        e.preventDefault()
+                        if (currentPage > 1) setCurrentPage(currentPage - 1)
+                      }}
+                      aria-disabled={currentPage === 1}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#" isActive>
+                      {currentPage} de {totalPages}
+                    </PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={e => {
+                        e.preventDefault()
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+                      }}
+                      aria-disabled={currentPage === totalPages}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </CardContent>
         </Card>

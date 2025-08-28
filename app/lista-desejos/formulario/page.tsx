@@ -157,6 +157,7 @@ export default function FormularioDesejoPage() {
 
       await addWishlistItem({
         ...formData,
+        nome: formData.nome.toLowerCase(), // Converter nome para lowercase
         imagemUrl,
         jaComprou: formData.jaComprou === "Sim",
         status: "Pendente",
