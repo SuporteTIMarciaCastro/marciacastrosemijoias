@@ -12,7 +12,7 @@ export interface Pagamento {
   dadosPagamento?: string
   situacao: string
   situacaoOrder?: number
-  comprovantePagamento?: string
+  comprovantePagamento?: string[]
   comprovanteDevolucao?: string
   boletoPdf?: string
   formaPagamento?: string

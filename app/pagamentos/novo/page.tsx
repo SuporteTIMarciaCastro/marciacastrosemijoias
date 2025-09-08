@@ -23,7 +23,7 @@ interface FormData {
   data: string
   justificativa: string
   dadosPagamento: string
-  comprovantePagamento: File | undefined
+  comprovantePagamento: File[]
   boletoPdf: File | undefined
   dataVencimento: string
   formaPagamento: string
@@ -42,7 +42,7 @@ export default function NovoPagamentoPage() {
     data: "",
     justificativa: "",
     dadosPagamento: "",
-    comprovantePagamento: undefined,
+    comprovantePagamento: [],
     boletoPdf: undefined,
     dataVencimento: "",
     formaPagamento: "",
@@ -116,6 +116,17 @@ export default function NovoPagamentoPage() {
     }
   }
 
+  function handleComprovantesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (files) {
+      const validFiles = Array.from(files).filter(file => file.size <= MAX_FILE_SIZE)
+      if (validFiles.length < files.length) {
+        toast.error("Algum arquivo excede o limite de 4MB e foi ignorado.")
+      }
+      setForm((prev) => ({ ...prev, comprovantePagamento: validFiles }))
+    }
+  }
+
   function handleAnexosChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (files) {
@@ -151,9 +162,10 @@ export default function NovoPagamentoPage() {
     setIsLoading(true)
 
     try {
-      let comprovantePagamentoUrl: string | undefined
-      if (form.comprovantePagamento instanceof File) {
-        comprovantePagamentoUrl = await uploadFileToDrive(form.comprovantePagamento)
+      // Upload dos comprovantes de pagamento
+      let comprovantePagamentoUrls: string[] = []
+      if (form.comprovantePagamento && form.comprovantePagamento.length > 0) {
+        comprovantePagamentoUrls = await uploadAnexosToDrive(form.comprovantePagamento)
       }
 
       let boletoPdfUrl: string | undefined
@@ -175,7 +187,7 @@ export default function NovoPagamentoPage() {
         dadosPagamento: form.dadosPagamento,
         situacao: "pendente",
         situacaoOrder: 0,
-        comprovantePagamento: comprovantePagamentoUrl,
+        comprovantePagamento: comprovantePagamentoUrls,
         boletoPdf: boletoPdfUrl,
         dataVencimento: form.dataVencimento,
         formaPagamento: formaPagamento,
@@ -244,20 +256,23 @@ export default function NovoPagamentoPage() {
                     </div>
                   )}
                   <div>
-                    <label className="block mb-1 font-medium">Comprovante de pagamento</label>
+                    <label className="block mb-1 font-medium">Comprovantes de pagamento</label>
                     <Input 
                       name="comprovantePagamento" 
                       type="file" 
+                      multiple
                       accept="image/*,.pdf"
-                      onChange={handleFileChange}
+                      onChange={handleComprovantesChange}
                     />
                     <p className="text-sm text-muted-foreground mt-1">
-                      Aceita arquivos PDF ou imagens (máximo 4MB)
+                      Aceita arquivos PDF ou imagens (máximo 4MB cada)
                     </p>
-                    {form.comprovantePagamento && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Arquivo selecionado: {form.comprovantePagamento.name}
-                      </p>
+                    {form.comprovantePagamento.length > 0 && (
+                      <ul className="text-sm text-green-600 mt-1">
+                        {form.comprovantePagamento.map((file, idx) => (
+                          <li key={idx}>{file.name}</li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                   <div>

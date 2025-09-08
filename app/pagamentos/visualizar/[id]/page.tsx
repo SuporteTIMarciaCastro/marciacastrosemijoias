@@ -194,24 +194,59 @@ export default function VisualizarPagamentoPage({ params }: { params: Promise<{ 
 
               {pagamento.comprovantePagamento && (
                 <div>
-                  <h3 className="font-semibold mb-2">Comprovante de Pagamento</h3>
-                  {pagamento.comprovantePagamento.startsWith('data:image/') ? (
-                    <div className="mt-2">
-                      <img 
-                        src={pagamento.comprovantePagamento} 
-                        alt="Comprovante de pagamento" 
-                        className="max-w-full h-auto rounded-lg border"
-                      />
+                  <h3 className="font-semibold mb-2">
+                    {Array.isArray(pagamento.comprovantePagamento) && pagamento.comprovantePagamento.length > 1 
+                      ? "Comprovantes de Pagamento" 
+                      : "Comprovante de Pagamento"}
+                  </h3>
+                  {Array.isArray(pagamento.comprovantePagamento) ? (
+                    <div className="space-y-4">
+                      {pagamento.comprovantePagamento.map((comprovante, idx) => (
+                        <div key={idx}>
+                          <h4 className="text-sm font-medium mb-2">Comprovante {idx + 1}</h4>
+                          {comprovante.startsWith('data:image/') ? (
+                            <div className="mt-2">
+                              <img 
+                                src={comprovante} 
+                                alt={`Comprovante de pagamento ${idx + 1}`} 
+                                className="max-w-full h-auto rounded-lg border"
+                              />
+                            </div>
+                          ) : (
+                            <a 
+                              href={comprovante} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              Visualizar comprovante {idx + 1}
+                            </a>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    <a 
-                      href={pagamento.comprovantePagamento} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      Visualizar comprovante
-                    </a>
+                    // Compatibilidade com formato antigo (string única)
+                    <>
+                      {typeof pagamento.comprovantePagamento === 'string' && pagamento.comprovantePagamento.startsWith('data:image/') ? (
+                        <div className="mt-2">
+                          <img 
+                            src={pagamento.comprovantePagamento} 
+                            alt="Comprovante de pagamento" 
+                            className="max-w-full h-auto rounded-lg border"
+                          />
+                        </div>
+                      ) : (
+                        <a 
+                          href={typeof pagamento.comprovantePagamento === 'string' ? pagamento.comprovantePagamento : '#'} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline"
+                        >
+                          Visualizar comprovante
+                        </a>
+                      )}
+                    </>
                   )}
                 </div>
               )}
