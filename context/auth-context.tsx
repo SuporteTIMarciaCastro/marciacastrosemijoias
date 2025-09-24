@@ -5,6 +5,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
   User as FirebaseUser
 } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
@@ -14,7 +17,7 @@ import { User, UserPermissions } from "@/types/permissions"
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string, remember15?: boolean) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -31,6 +34,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
+          // Verifica expiração customizada de "lembrar por 15 dias"
+          const rememberUntil = (() => {
+            try { return localStorage.getItem('auth_remember_until') } catch { return null }
+          })()
+          if (rememberUntil) {
+            const expiresAt = Number(rememberUntil)
+            if (Number.isFinite(expiresAt) && Date.now() > expiresAt) {
+              // Expirado: força logout
+              await signOut(auth)
+              userCache.clear()
+              setUser(null)
+              setLoading(false)
+              return
+            }
+          }
           // Verifica se o usuário já está em cache
           const cachedUser = userCache.get(firebaseUser.uid)
           
@@ -73,10 +91,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe()
   }, [])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, remember15: boolean = false) => {
     try {
+      // Define persistência conforme preferência do usuário
+      await setPersistence(auth, remember15 ? browserLocalPersistence : browserSessionPersistence)
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
+
+      // Controla expiração customizada de 15 dias (apenas quando lembrar estiver ativo)
+      try {
+        if (remember15) {
+          const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
+          localStorage.setItem('auth_remember_until', String(Date.now() + fifteenDaysMs))
+        } else {
+          localStorage.removeItem('auth_remember_until')
+        }
+      } catch {}
 
       // Verifica se o usuário já está em cache
       const cachedUser = userCache.get(user.uid)
@@ -118,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       // Limpa o cache ao fazer logout
       userCache.clear()
+      try { localStorage.removeItem('auth_remember_until') } catch {}
     } catch (error) {
       console.error('Erro no logout:', error)
       throw error

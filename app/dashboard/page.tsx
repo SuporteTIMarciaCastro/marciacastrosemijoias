@@ -16,16 +16,17 @@ interface MenuItem {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
+    if (loading) return
     if (!user) {
-      router.push("/login")
+      router.replace("/login")
     }
-  }, [user, router])
+  }, [user, loading, router])
 
-  if (!user) {
+  if (loading || !user) {
     return null
   }
 
@@ -34,6 +35,7 @@ export default function DashboardPage() {
     { title: "Lista de Garantia", path: "/lista-garantia", permission: "listaGarantia" },
     { title: "Lista de Materiais", path: "/lista-solicitacoes", permission: "listaMateriais" },
     { title: "Lista de Pagamentos", path: "/pagamentos", permission: "pagamentos" },
+    { title: "Lista de Usuários", path: "/usuarios", permission: "listaUsuarios" },
   ]
 
   const filteredMenuItems = menuItems.filter(item => 

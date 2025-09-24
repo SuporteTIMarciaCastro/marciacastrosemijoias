@@ -1,4 +1,4 @@
-export type PermissionKey = 'listaDesejos' | 'listaGarantia' | 'listaMateriais' | 'pagamentos';
+export type PermissionKey = 'listaDesejos' | 'listaGarantia' | 'listaMateriais' | 'pagamentos' | 'listaUsuarios';
 
 export interface UserPermissions {
   // Permissões de Lista de Desejos
@@ -39,6 +39,15 @@ export interface UserPermissions {
     adicionar: boolean;
     editar: boolean;
     editar_basico: boolean;
+    remover: boolean;
+  };
+  
+  // Permissões de Lista de Usuários
+  listaUsuarios: {
+    visualizarPage: boolean;
+    visualizar: boolean;
+    adicionar: boolean;
+    editar: boolean;
     remover: boolean;
   };
 }
