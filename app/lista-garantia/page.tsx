@@ -333,9 +333,9 @@ export default function ListaGarantiaPage() {
 
       // Inserir QR Code no PDF (posição fixa, inferior)
       // Página: 72.1mm x 210mm. Vamos posicionar o QR próximo ao rodapé.
-      const qrX = 23
+      const qrX = 17
       const qrY = 165
-      const qrSize = 25
+      const qrSize = 35
       doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
 
       // Legenda do QR
@@ -460,7 +460,51 @@ export default function ListaGarantiaPage() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            {/* Lista Mobile (cards) */}
+            <div className="md:hidden space-y-3">
+              {isLoading ? (
+                <div className="text-center py-4">Carregando...</div>
+              ) : filteredItems.length === 0 ? (
+                <div className="text-center py-4">Nenhuma garantia encontrada</div>
+              ) : (
+                filteredItems.slice(0, pageSize).map((item, idx) => (
+                  <div key={item.id} className="border rounded-lg p-3 bg-white dark:bg-gray-800">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-xs text-gray-500">#{(currentPage - 1) * pageSize + idx + 1}</div>
+                        <div className="font-semibold text-sm">{(item.nome || "").toUpperCase()}</div>
+                      </div>
+                      <ActionsMenu
+                        viewPath="/lista-garantia/visualizar"
+                        onEdit={() => handleEdit(item.id)}
+                        onDelete={() => setItemToDelete(item.id)}
+                        onFinalize={() => handleFinalize(item.id)}
+                        pageType="listaGarantia"
+                        itemId={item.id}
+                        isFinalized={item.finalized}
+                        onPrint={() => handlePrintWarranty(item)}
+                      />
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <StatusBadge status={item.status} />
+                      {item.finalized ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Finalizada</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Pendente</span>
+                      )}
+                    </div>
+                    <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-600 dark:text-gray-300">
+                      <div><span className="font-medium">Loja:</span> {item.loja}</div>
+                      <div><span className="font-medium">Entrada:</span> {item.dataValidade}</div>
+                      <div><span className="font-medium">WhatsApp:</span> {item.whatsapp || "-"}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Tabela Desktop */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
