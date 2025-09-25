@@ -10,6 +10,8 @@ import type { WarrantyItem } from "@/types"
 import { StatusBadge } from "@/components/status-badge"
 import { Calendar, MapPin, User, Mail, Phone, FileText, Image as ImageIcon, Copy } from "lucide-react"
 import { use } from "react"
+import { useAuth } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
 
 // Re-adicionando getGoogleDriveEmbedUrl para gerar a URL de imagem bruta
 const getGoogleDriveEmbedUrl = (url: string): string => {
@@ -26,6 +28,8 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
   const [item, setItem] = useState<WarrantyItem | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+  const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const loadItem = async () => {
@@ -125,22 +129,33 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                 <CardTitle className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">
                   Detalhes da Garantia
                 </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const url = window.location.href
-                    navigator.clipboard.writeText(url)
-                    toast({
-                      title: "URL copiada",
-                      description: "O link da garantia foi copiado para a área de transferência",
-                    })
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar Link
-                </Button>
+                <div className="flex items-center gap-2">
+                  {user && (user.permissions?.listaGarantia?.editar_basico || user.permissions?.listaGarantia?.editar) && !item.finalized && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => router.push(`/lista-garantia?edit=${id}`)}
+                    >
+                      Editar Garantia
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const url = window.location.href
+                      navigator.clipboard.writeText(url)
+                      toast({
+                        title: "URL copiada",
+                        description: "O link da garantia foi copiado para a área de transferência",
+                      })
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar Link
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -301,4 +316,4 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
       </main>
     </div>
   )
-} 
+}

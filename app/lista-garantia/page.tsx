@@ -320,16 +320,16 @@ export default function ListaGarantiaPage() {
       { maxWidth: 62 }
     );
 
-    // Gerar QR Code com URL para abrir modal de edição direto
+    // Gerar QR Code com URL para visualizar a garantia (público)
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const editUrl = `${origin}/lista-garantia?edit=${encodeURIComponent(item.id)}`
+      const targetUrl = `${origin}/lista-garantia/visualizar/${encodeURIComponent(item.id)}`
       const qrModule: any = await import('qrcode')
       const QRCode = qrModule?.default ?? qrModule
       if (!QRCode?.toDataURL) {
         throw new Error('Biblioteca qrcode não encontrada ou método toDataURL indisponível')
       }
-      const qrDataUrl: string = await QRCode.toDataURL(editUrl, { margin: 1 })
+      const qrDataUrl: string = await QRCode.toDataURL(targetUrl, { margin: 1 })
 
       // Inserir QR Code no PDF (posição fixa, inferior)
       // Página: 72.1mm x 210mm. Vamos posicionar o QR próximo ao rodapé.
