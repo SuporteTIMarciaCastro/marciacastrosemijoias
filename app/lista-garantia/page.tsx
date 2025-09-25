@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,6 +61,7 @@ export default function ListaGarantiaPage() {
   const [lastDoc, setLastDoc] = useState<any>(null)
   const [pageDocs, setPageDocs] = useState<any[]>([])
   const [totalItems, setTotalItems] = useState<number | null>(null)
+  const searchParams = useSearchParams()
 
   const loadWarrantyItems = async () => {
     setIsLoading(true)
@@ -86,6 +87,18 @@ export default function ListaGarantiaPage() {
 
     loadWarrantyItems()
   }, [user, router, toast])
+
+  // Abrir modal de edição via URL (?edit=<id>)
+  useEffect(() => {
+    if (!user) return
+    const editId = searchParams?.get('edit')
+    if (editId) {
+      setSelectedItemId(editId)
+      setIsModalOpen(true)
+    }
+    // Apenas ao montar ou quando searchParams mudar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, searchParams])
 
   // Carregar total de itens (apenas para saber o total de páginas)
   useEffect(() => {
@@ -248,10 +261,10 @@ export default function ListaGarantiaPage() {
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text("CUPOM DE GARANTIA", 28, 8);
+    doc.text("CUPOM DE GARANTIA", 27, 8);
     doc.setFontSize(8);
-    doc.text("MARCIA DE LOURDES", 28, 14);
-    doc.text("NASCIMENTO CASTRO BARROS", 28, 18);
+    doc.text("MARCIA DE LOURDES", 27, 14);
+    doc.text("NASCIMENTO CASTRO BARROS", 27, 18);
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
@@ -306,6 +319,38 @@ export default function ListaGarantiaPage() {
       y,
       { maxWidth: 62 }
     );
+
+    // Gerar QR Code com URL para abrir modal de edição direto
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const editUrl = `${origin}/lista-garantia?edit=${encodeURIComponent(item.id)}`
+      const qrModule: any = await import('qrcode')
+      const QRCode = qrModule?.default ?? qrModule
+      if (!QRCode?.toDataURL) {
+        throw new Error('Biblioteca qrcode não encontrada ou método toDataURL indisponível')
+      }
+      const qrDataUrl: string = await QRCode.toDataURL(editUrl, { margin: 1 })
+
+      // Inserir QR Code no PDF (posição fixa, inferior)
+      // Página: 72.1mm x 210mm. Vamos posicionar o QR próximo ao rodapé.
+      const qrX = 23
+      const qrY = 165
+      const qrSize = 25
+      doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+
+      // Legenda do QR
+      // doc.setFont('helvetica', 'bold')
+      // doc.setFontSize(7)
+      // doc.text('Editar Garantia', qrX + qrSize + 3, qrY + 6)
+      // doc.setFont('helvetica', 'normal')
+      // doc.setFontSize(6)
+      // doc.text('Escaneie para abrir a edição', qrX + qrSize + 3, qrY + 11, { maxWidth: 30 })
+      // doc.setFontSize(5)
+      // doc.text(editUrl, qrX + qrSize + 3, qrY + 17, { maxWidth: 35 })
+    } catch (e) {
+      // Se não conseguir gerar o QR, apenas segue sem ele
+      console.warn('Falha ao gerar QR Code para o PDF', e)
+    }
 
     doc.save(`garantia-${item.id}.pdf`);
   };
