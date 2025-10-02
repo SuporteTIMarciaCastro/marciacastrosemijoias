@@ -44,6 +44,7 @@ import {
 export default function ListaGarantiaPage() {
   const [warrantyItems, setWarrantyItems] = useState<WarrantyItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchInput, setSearchInput] = useState("")
   const [lojaFilter, setLojaFilter] = useState("todas")
   const [finalizadaFilter, setFinalizadaFilter] = useState("todas")
   const [statusFilter, setStatusFilter] = useState("todos")
@@ -355,6 +356,28 @@ export default function ListaGarantiaPage() {
     doc.save(`garantia-${item.id}.pdf`);
   };
 
+  const handleSearch = () => {
+    const trimmed = searchInput.trim()
+
+    if (trimmed.length === 0) {
+      setSearchInput("")
+      setSearchTerm("")
+      return
+    }
+
+    if (trimmed.length < 3) {
+      toast({
+        title: "Busca muito curta",
+        description: "Digite pelo menos 3 letras antes de pesquisar.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSearchInput(trimmed)
+    setSearchTerm(trimmed)
+  }
+
   const statusOptions = [
     "Recebido loja",
     "Recebido comercial",
@@ -367,6 +390,7 @@ export default function ListaGarantiaPage() {
   ]
 
   const clearFilters = () => {
+    setSearchInput("")
     setSearchTerm("")
     setLojaFilter("todas")
     setFinalizadaFilter("todas")
@@ -406,57 +430,76 @@ export default function ListaGarantiaPage() {
                 <Filter className="h-4 w-4" />
                 Filtros
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <Input
-                  placeholder="Pesquisar por nome ou status..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="md:col-span-1"
-                />
-                <Select value={lojaFilter} onValueChange={setLojaFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por Loja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas as lojas</SelectItem>
-                    {lojas.filter(loja => loja.trim() !== "").map((loja) => (
-                      <SelectItem key={loja} value={loja}>
-                        {loja}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={finalizadaFilter} onValueChange={setFinalizadaFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por Finalizada" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas</SelectItem>
-                    <SelectItem value="sim">Finalizada</SelectItem>
-                    <SelectItem value="nao">Pendente</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Filtrar por Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os status</SelectItem>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {status}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button 
-                  variant="outline" 
-                  onClick={clearFilters}
-                  className="flex items-center gap-2"
-                >
-                  <X className="h-4 w-4" />
-                  Limpar Filtros
-                </Button>
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="Pesquisar por nome (mín. 3 letras)"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault()
+                        handleSearch()
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearch} variant="secondary" className="w-full sm:w-auto">
+                    Pesquisar
+                  </Button>
+                </div>
+                <div className="md:col-span-1">
+                  <Select value={lojaFilter} onValueChange={setLojaFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filtrar por Loja" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as lojas</SelectItem>
+                      {lojas.filter(loja => loja.trim() !== "").map((loja) => (
+                        <SelectItem key={loja} value={loja}>
+                          {loja}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-1">
+                  <Select value={finalizadaFilter} onValueChange={setFinalizadaFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filtrar por Finalizada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas</SelectItem>
+                      <SelectItem value="sim">Finalizada</SelectItem>
+                      <SelectItem value="nao">Pendente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-1">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filtrar por Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      {statusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {status}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-1">
+                  <Button 
+                    variant="outline" 
+                    onClick={clearFilters}
+                    className="flex items-center gap-2 w-full"
+                  >
+                    <X className="h-4 w-4" />
+                    Limpar Filtros
+                  </Button>
+                </div>
               </div>
             </div>
 
