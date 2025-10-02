@@ -172,6 +172,25 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
   }
 
+  const triggerWarrantyWebhook = async (payload: Record<string, unknown>) => {
+    try {
+      const response = await fetch("/api/warranty-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "")
+        console.error("Falha ao acionar webhook de garantia", response.status, errorText)
+      }
+    } catch (error) {
+      console.error("Erro ao acionar webhook de garantia:", error)
+    }
+  }
+
   const uploadFileToDrive = async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append("file", file)
@@ -232,6 +251,12 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
         })
       } else {
         const newGarantiaId = await addWarrantyItem(dataToSave)
+        void triggerWarrantyWebhook({
+          action: "warranty_created",
+          id: newGarantiaId,
+          ...dataToSave,
+          createdAt: new Date().toISOString(),
+        })
         toast({
           title: "Sucesso",
           description: "Garantia adicionada com sucesso!",
