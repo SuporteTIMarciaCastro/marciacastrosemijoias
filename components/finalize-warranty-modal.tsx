@@ -48,6 +48,25 @@ export function FinalizeWarrantyModal({
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
+  const triggerWarrantyWebhook = async (payload: Record<string, unknown>) => {
+    try {
+      const response = await fetch("/api/warranty-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "")
+        console.error("Falha ao acionar webhook de garantia", response.status, errorText)
+      }
+    } catch (error) {
+      console.error("Erro ao acionar webhook de garantia:", error)
+    }
+  }
+
   // Verifica se o status atual permite finalização direta
   const canFinalizeDirectly = warrantyItem?.status && 
     ["Devolvido cliente", "Extraviada-crédito cliente", "Negado"].includes(warrantyItem.status)
@@ -78,12 +97,32 @@ export function FinalizeWarrantyModal({
     try {
       const finalStatus = canFinalizeDirectly ? warrantyItem.status : selectedStatus
       const finalObservacao = selectedStatus === "Negado" ? justificativa : warrantyItem.observacao
+      const timestamp = new Date().toISOString()
 
       await updateWarrantyItem(warrantyItem.id, {
         status: finalStatus,
         observacao: finalObservacao,
         finalized: true,
-        updatedAt: new Date().toISOString()
+        updatedAt: timestamp
+      })
+
+      void triggerWarrantyWebhook({
+        action: "warranty_finalized",
+        id: warrantyItem.id,
+        nome: warrantyItem.nome,
+        loja: warrantyItem.loja,
+        vendedor: warrantyItem.vendedor,
+        status: finalStatus,
+        observacao: finalObservacao,
+        finalized: true,
+        dataCompra: warrantyItem.dataCompra,
+        dataValidade: warrantyItem.dataValidade,
+        email: warrantyItem.email,
+        whatsapp: warrantyItem.whatsapp,
+        descricaoPecas: warrantyItem.descricaoPecas,
+        notaCompra: warrantyItem.notaCompra,
+        imagemPecas: warrantyItem.imagemPecas,
+        updatedAt: timestamp,
       })
 
       toast({
