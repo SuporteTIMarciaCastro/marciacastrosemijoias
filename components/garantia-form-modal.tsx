@@ -245,6 +245,12 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
       if (itemId) {
         await updateWarrantyItem(itemId, dataToSave)
+        void triggerWarrantyWebhook({
+          action: "warranty_updated",
+          id: itemId,
+          ...dataToSave,
+          updatedAt: new Date().toISOString(),
+        })
         toast({
           title: "Sucesso",
           description: "Garantia atualizada com sucesso!",
