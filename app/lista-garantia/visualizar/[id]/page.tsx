@@ -125,16 +125,19 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
         <div className="max-w-4xl mx-auto space-y-6">
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              {/* Stack title above buttons on small screens to avoid overflow */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <CardTitle className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">
                   Detalhes da Garantia
                 </CardTitle>
-                <div className="flex items-center gap-2">
+
+                <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
                   {user && (user.permissions?.listaGarantia?.editar_basico || user.permissions?.listaGarantia?.editar) && !item.finalized && (
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => router.push(`/lista-garantia?edit=${id}`)}
+                      className="whitespace-nowrap"
                     >
                       Editar Garantia
                     </Button>
@@ -143,10 +146,10 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-green-600"
+                      className="text-green-600 whitespace-nowrap"
                       onClick={() => router.push(`/lista-garantia?finalized=${id}`)}
-                      >
-                        Finalizar Garantia
+                    >
+                      Finalizar Garantia
                     </Button>                    
                   )}
 
@@ -161,10 +164,10 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                         description: "O link da garantia foi copiado para a área de transferência",
                       })
                     }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 whitespace-nowrap"
                   >
                     <Copy className="h-4 w-4" />
-                    Copiar Link
+                    <span className="hidden sm:inline">Copiar Link</span>
                   </Button>
                 </div>
               </div>
