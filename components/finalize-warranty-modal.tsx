@@ -45,6 +45,7 @@ export function FinalizeWarrantyModal({
 }: FinalizeWarrantyModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<string>("")
   const [justificativa, setJustificativa] = useState<string>("")
+  const [confirmName, setConfirmName] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -73,6 +74,16 @@ export function FinalizeWarrantyModal({
 
   const handleFinalize = async () => {
     if (!warrantyItem) return
+
+    // Confirmação do nome do cliente (obrigatório)
+    if (confirmName.trim().toLowerCase() !== (warrantyItem.nome || "").trim().toLowerCase()) {
+      toast({
+        title: "Erro",
+        description: "Digite corretamente o nome do cliente para confirmar a finalização",
+        variant: "destructive",
+      })
+      return
+    }
 
     // Validações
     if (!canFinalizeDirectly && !selectedStatus) {
@@ -146,6 +157,7 @@ export function FinalizeWarrantyModal({
   const handleClose = () => {
     setSelectedStatus("")
     setJustificativa("")
+    setConfirmName("")
     onClose()
   }
 
@@ -205,13 +217,30 @@ export function FinalizeWarrantyModal({
               />
             </div>
           )}
+
+          {/* Campo obrigatório: confirmar nome do cliente */}
+          <div className="space-y-2">
+            <Label htmlFor="confirmName">Confirme o nome do cliente *</Label>
+            <Input
+              id="confirmName"
+              placeholder="Digite o nome completo do cliente para confirmar"
+              value={confirmName}
+              onChange={(e) => setConfirmName(e.target.value)}
+            />
+            <div className="text-xs text-gray-500">Digite exatamente o nome exibido em Cliente para habilitar a finalização.</div>
+          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={handleFinalize} disabled={isLoading}>
+          <Button
+            onClick={handleFinalize}
+            disabled={isLoading || (
+              confirmName.trim().toLowerCase() !== (warrantyItem.nome || "").trim().toLowerCase()
+            )}
+          >
             {isLoading ? "Finalizando..." : "Finalizar Garantia"}
           </Button>
         </DialogFooter>

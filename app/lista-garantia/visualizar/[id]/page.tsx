@@ -139,6 +139,17 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                       Editar Garantia
                     </Button>
                   )}
+                  {user && (user.permissions?.listaGarantia?.finalizar) && !item.finalized && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-green-600"
+                      onClick={() => router.push(`/lista-garantia?finalized=${id}`)}
+                      >
+                        Finalizar Garantia
+                    </Button>                    
+                  )}
+
                   <Button
                     variant="outline"
                     size="sm"

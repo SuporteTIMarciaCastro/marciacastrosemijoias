@@ -92,14 +92,51 @@ export default function ListaGarantiaPage() {
   // Abrir modal de edição via URL (?edit=<id>)
   useEffect(() => {
     if (!user) return
+
     const editId = searchParams?.get('edit')
+    const finalizedId = searchParams?.get('finalized')
+
+    // Prioriza edição se ambos estiverem presentes
     if (editId) {
       setSelectedItemId(editId)
       setIsModalOpen(true)
+      return
     }
+
+    if (finalizedId) {
+      setSelectedItemId(finalizedId)
+      // busca o item e abre o modal de finalização com os dados
+      const openFinalize = async () => {
+        try {
+          const item = await fetchWarrantyItem(finalizedId)
+          setSelectedWarrantyItem(item ?? null)
+          setFinalizeModalOpen(true)
+        } catch (e) {
+          toast({
+            title: "Erro",
+            description: "Não foi possível abrir a finalização da garantia",
+            variant: "destructive",
+          })
+        }
+      }
+      openFinalize()
+    }
+
     // Apenas ao montar ou quando searchParams mudar
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, searchParams])
+
+  //   // Abrir modal de finalização via URL (?finalized=<id>)
+  // useEffect(() => {
+  //   if (!user) return
+  //   const editId = searchParams?.get('finalized')
+  //   if (editId) {
+  //     setSelectedItemId(editId)
+  //     setIsModalOpen(true)
+  //   }
+  //   // Apenas ao montar ou quando searchParams mudar
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [user, searchParams])
 
   // Carregar total de itens (apenas para saber o total de páginas)
   useEffect(() => {
