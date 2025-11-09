@@ -47,6 +47,7 @@ export default function ListaPagamentosPage() {
   const router = useRouter()
   const { user } = useAuth()
   const [order, setOrder] = useState<'desc' | 'asc'>("desc")
+  const [alertOpen, setAlertOpen] = useState(false)
 
   useEffect(() => {
     if (!user) {
@@ -69,7 +70,7 @@ export default function ListaPagamentosPage() {
     }
 
     if (trimmed.length < 3) {
-      toast.error("Digite pelo menos 3 letras antes de pesquisar.")
+      setAlertOpen(true)
       return
     }
 
@@ -223,7 +224,7 @@ export default function ListaPagamentosPage() {
                 <Button 
                   onClick={handleSearch} 
                   variant="secondary"
-                  disabled={isSearching || searchInput.trim().length < 3}
+                  disabled={isSearching}
                 >
                   {isSearching ? "Buscando..." : "Buscar"}
                 </Button>
@@ -361,6 +362,20 @@ export default function ListaPagamentosPage() {
         pagamentoId={pagamentoToEdit}
         onSuccess={loadPagamentos}
       />
+
+      <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Erro</AlertDialogTitle>
+            <AlertDialogDescription>
+              Digite pelo menos 3 caracteres para pesquisar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAlertOpen(false)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 } 

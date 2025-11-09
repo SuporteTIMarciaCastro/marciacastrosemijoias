@@ -29,6 +29,15 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 // Função utilitária para converter URL do Google Drive
 function getGoogleDriveEmbedUrl(url: string): string {
@@ -53,6 +62,9 @@ export default function ListaDesejosPage() {
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+
+  const [inputSearchTerm, setInputSearchTerm] = useState("")
+  const [alertOpen, setAlertOpen] = useState(false)
 
 
 
@@ -164,6 +176,7 @@ export default function ListaDesejosPage() {
   }
 
   const clearFilters = () => {
+    setInputSearchTerm("")
     setSearchTerm("")
     setLojaDestinoFilter("todas")
     setAvisadoFilter("todos")
@@ -220,12 +233,20 @@ export default function ListaDesejosPage() {
                 Filtros
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Input
-                  placeholder="Pesquisar por nome ou produto..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="md:col-span-1"
-                />
+                <div className="flex gap-2 md:col-span-1">
+                  <Input
+                    placeholder="Pesquisar por nome ou produto..."
+                    value={inputSearchTerm}
+                    onChange={(e) => setInputSearchTerm(e.target.value)}
+                  />
+                  <Button onClick={() => {
+                    if (inputSearchTerm.length < 3) {
+                      setAlertOpen(true)
+                    } else {
+                      setSearchTerm(inputSearchTerm)
+                    }
+                  }}>Buscar</Button>
+                </div>
                 <Select value={lojaDestinoFilter} onValueChange={setLojaDestinoFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="Filtrar por Loja Destino" />
@@ -384,6 +405,19 @@ export default function ListaDesejosPage() {
             </div>
           </CardContent>
         </Card>
+        <AlertDialog open={alertOpen} onOpenChange={setAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Erro</AlertDialogTitle>
+              <AlertDialogDescription>
+                Digite pelo menos 3 caracteres para pesquisar.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setAlertOpen(false)}>OK</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </main>
     </div>
   )
