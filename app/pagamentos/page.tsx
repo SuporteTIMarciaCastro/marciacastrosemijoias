@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/header"
-import { fetchPagamentos, deletePagamento, Pagamento } from "@/lib/firebase/pagamentos"
+import { fetchPagamentos, deletePagamento, Pagamento, fetchPagamentosWithFilters } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
 import { useAuth } from "@/context/auth-context"
 import {
@@ -37,6 +37,8 @@ export default function ListaPagamentosPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const [searchInput, setSearchInput] = useState("")
+  const [isSearching, setIsSearching] = useState(false)
   const [pagamentoToDelete, setPagamentoToDelete] = useState<Pagamento | null>(null)
   const [pagamentoToEdit, setPagamentoToEdit] = useState<string | null>(null)
   const [lastDoc, setLastDoc] = useState<QueryDocumentSnapshot | null>(null)
@@ -54,14 +56,62 @@ export default function ListaPagamentosPage() {
     loadPagamentos()
   }, [user, router])
 
+  // Função para executar busca
+  const handleSearch = async () => {
+    const trimmed = searchInput.trim()
+
+    if (trimmed.length === 0) {
+      setSearchInput("")
+      setSearchTerm("")
+      setPageStack([])
+      await loadPagamentos()
+      return
+    }
+
+    if (trimmed.length < 3) {
+      toast.error("Digite pelo menos 3 letras antes de pesquisar.")
+      return
+    }
+
+    setSearchTerm(trimmed)
+    setPageStack([])
+    setIsSearching(true)
+    try {
+      await loadPagamentos()
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // Limpar busca
+  const handleClearSearch = async () => {
+    setSearchInput("")
+    setSearchTerm("")
+    setPageStack([])
+    await loadPagamentos()
+  }
+
   async function loadPagamentos(startAfterDoc?: QueryDocumentSnapshot, goingBack = false) {
     setIsLoading(true)
     setError(null)
     try {
-      const { pagamentos: data, lastDoc: newLastDoc } = await fetchPagamentos(10, startAfterDoc)
-      setPagamentos(data)
-      setLastDoc(newLastDoc)
-      setIsLastPage(data.length < 10)
+      let result;
+      if (searchTerm.trim()) {
+        // Usar busca global quando há termo de busca
+        result = await fetchPagamentosWithFilters({
+          searchTerm,
+          limitValue: 10,
+          startAfterDoc
+        });
+      } else {
+        // Usar paginação normal quando não há busca
+        result = await fetchPagamentos(10, startAfterDoc);
+      }
+      
+      setPagamentos(result.pagamentos)
+      setLastDoc(result.lastDoc)
+      setIsLastPage(result.pagamentos.length < 10)
+      
       if (!goingBack && startAfterDoc) {
         setPageStack((prev) => [...prev, startAfterDoc])
       } else if (goingBack) {
@@ -106,7 +156,7 @@ export default function ListaPagamentosPage() {
     }
   }
 
-  const filteredPagamentos = pagamentos.filter((p) =>
+  const filteredPagamentos = searchTerm.trim() ? pagamentos : pagamentos.filter((p) =>
     (p.finalidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.justificativa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,12 +206,37 @@ export default function ListaPagamentosPage() {
           <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
             <CardTitle>Lista de Solicitações de Pagamentos</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Pesquisar pagamento..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-xs"
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Pesquisar pagamento (mín. 3 letras)..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleSearch()
+                    }
+                  }}
+                  className="max-w-xs"
+                  disabled={isSearching}
+                />
+                <Button 
+                  onClick={handleSearch} 
+                  variant="secondary"
+                  disabled={isSearching || searchInput.trim().length < 3}
+                >
+                  {isSearching ? "Buscando..." : "Buscar"}
+                </Button>
+                {searchTerm && (
+                  <Button 
+                    onClick={handleClearSearch} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
               {canAdd && (
                 <Button onClick={() => router.push("/pagamentos/novo")}>Adicionar Pagamento</Button>
               )}
