@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/header"
-import { fetchPagamentos, deletePagamento, Pagamento, fetchPagamentosWithFilters } from "@/lib/firebase/pagamentos"
+import { fetchPagamentos, deletePagamento, Pagamento, fetchPagamentosWithFilters, fetchCriadoresPagamentos } from "@/lib/firebase/pagamentos"
 import { toast } from "sonner"
 import { useAuth } from "@/context/auth-context"
 import {
@@ -27,10 +27,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { MoreHorizontal, Eye, Pencil, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { MoreHorizontal, Eye, Pencil, Trash2, CalendarIcon, X } from "lucide-react"
 import PagamentoFormModal from "@/components/pagamento-form-modal"
 import { QueryDocumentSnapshot } from "firebase/firestore"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale/pt-BR"
+import { Label } from "@/components/ui/label"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion"
 
 export default function ListaPagamentosPage() {
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([])
@@ -46,16 +52,39 @@ export default function ListaPagamentosPage() {
   const [isLastPage, setIsLastPage] = useState(false)
   const router = useRouter()
   const { user } = useAuth()
-  const [order, setOrder] = useState<'desc' | 'asc'>("desc")
   const [alertOpen, setAlertOpen] = useState(false)
+  
+  // Filtros
+  const [criadoPor, setCriadoPor] = useState<string>("todos")
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined)
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined)
+  const [dataInicioInput, setDataInicioInput] = useState<string>("")
+  const [dataFimInput, setDataFimInput] = useState<string>("")
+  const [criadores, setCriadores] = useState<string[]>([])
+  const [isLoadingCriadores, setIsLoadingCriadores] = useState(false)
+  const [indexErrorLink, setIndexErrorLink] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) {
       router.push("/login")
       return
     }
+    loadCriadores()
     loadPagamentos()
   }, [user, router])
+
+  // Carregar lista de criadores
+  const loadCriadores = async () => {
+    setIsLoadingCriadores(true)
+    try {
+      const lista = await fetchCriadoresPagamentos()
+      setCriadores(lista)
+    } catch (error) {
+      console.error("Erro ao carregar criadores:", error)
+    } finally {
+      setIsLoadingCriadores(false)
+    }
+  }
 
   // Função para executar busca
   const handleSearch = async () => {
@@ -92,20 +121,83 @@ export default function ListaPagamentosPage() {
     await loadPagamentos()
   }
 
+  // Aplicar filtros
+  const handleApplyFilters = async () => {
+    setPageStack([])
+    await loadPagamentos()
+  }
+
+  // Limpar todos os filtros
+  const handleClearFilters = async () => {
+    setCriadoPor("todos")
+    setDataInicio(undefined)
+    setDataFim(undefined)
+    setDataInicioInput("")
+    setDataFimInput("")
+    setSearchInput("")
+    setSearchTerm("")
+    setPageStack([])
+    setIndexErrorLink(null)
+    await loadPagamentos()
+  }
+
+  // Converter data do calendário para formato string
+  const handleDataInicioSelect = (date: Date | undefined) => {
+    setDataInicio(date)
+    if (date) {
+      setDataInicioInput(format(date, "yyyy-MM-dd"))
+    } else {
+      setDataInicioInput("")
+    }
+  }
+
+  const handleDataFimSelect = (date: Date | undefined) => {
+    setDataFim(date)
+    if (date) {
+      setDataFimInput(format(date, "yyyy-MM-dd"))
+    } else {
+      setDataFimInput("")
+    }
+  }
+
   async function loadPagamentos(startAfterDoc?: QueryDocumentSnapshot, goingBack = false) {
     setIsLoading(true)
     setError(null)
     try {
       let result;
-      if (searchTerm.trim()) {
-        // Usar busca global quando há termo de busca
+      
+      // Converter datas do input para formato string se necessário
+      let dataInicioStr = ""
+      let dataFimStr = ""
+      
+      if (dataInicio) {
+        dataInicioStr = format(dataInicio, "yyyy-MM-dd")
+      } else if (dataInicioInput.trim() !== "") {
+        dataInicioStr = dataInicioInput.trim()
+      }
+      
+      if (dataFim) {
+        dataFimStr = format(dataFim, "yyyy-MM-dd")
+      } else if (dataFimInput.trim() !== "") {
+        dataFimStr = dataFimInput.trim()
+      }
+      
+      // Verificar se há filtros ativos (Firestore ou busca)
+      const hasFirestoreFilters = criadoPor !== "todos" || dataInicioStr !== "" || dataFimStr !== ""
+      const hasSearchTerm = searchTerm.trim() !== ""
+      const hasAnyFilter = hasFirestoreFilters || hasSearchTerm
+      
+      if (hasAnyFilter) {
         result = await fetchPagamentosWithFilters({
           searchTerm,
+          criadoPor: criadoPor !== "todos" ? criadoPor : "",
+          dataInicio: dataInicioStr,
+          dataFim: dataFimStr,
           limitValue: 10,
           startAfterDoc
         });
       } else {
-        // Usar paginação normal quando não há busca
+        // Usar paginação normal quando não há filtros
         result = await fetchPagamentos(10, startAfterDoc);
       }
       
@@ -113,14 +205,30 @@ export default function ListaPagamentosPage() {
       setLastDoc(result.lastDoc)
       setIsLastPage(result.pagamentos.length < 10)
       
+      // Limpar erro de índice se a query funcionou
+      if (indexErrorLink) {
+        setIndexErrorLink(null)
+      }
+      
       if (!goingBack && startAfterDoc) {
         setPageStack((prev) => [...prev, startAfterDoc])
       } else if (goingBack) {
         setPageStack((prev) => prev.slice(0, -1))
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Verificar se é erro de índice faltando
+      if (err?.isIndexError && err?.indexLink) {
+        setIndexErrorLink(err.indexLink)
+        setError("Índice do Firestore necessário. Clique no link abaixo para criar.")
+        toast.error("Índice do Firestore necessário", {
+          description: "Clique no link na mensagem de erro para criar o índice",
+          duration: 10000,
+        })
+      } else {
       setError("Erro ao carregar pagamentos.")
       toast.error("Erro ao carregar pagamentos")
+        setIndexErrorLink(null)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -157,22 +265,8 @@ export default function ListaPagamentosPage() {
     }
   }
 
-  const filteredPagamentos = searchTerm.trim() ? pagamentos : pagamentos.filter((p) =>
-    (p.finalidade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.justificativa?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.tipo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.situacao?.toLowerCase().includes(searchTerm.toLowerCase()))
-  )
-
-  // Ordenação dos pagamentos filtrados
-  const orderedPagamentos = [...filteredPagamentos].sort((a, b) => {
-    if (!a.createdAt || !b.createdAt) return 0
-    if (order === "asc") {
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    } else {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    }
-  })
+  // Os pagamentos já vêm ordenados do Firestore
+  const orderedPagamentos = pagamentos
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -204,46 +298,208 @@ export default function ListaPagamentosPage() {
       <Header title="Solicitações de Pagamentos" />
       <main className="flex-1 p-4 md:p-6">
         <Card>
-          <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
-            <CardTitle>Lista de Solicitações de Pagamentos</CardTitle>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Pesquisar pagamento (mín. 3 letras)..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleSearch()
-                    }
-                  }}
-                  className="max-w-xs"
-                  disabled={isSearching}
-                />
-                <Button 
-                  onClick={handleSearch} 
-                  variant="secondary"
-                  disabled={isSearching}
-                >
-                  {isSearching ? "Buscando..." : "Buscar"}
-                </Button>
-                {searchTerm && (
-                  <Button 
-                    onClick={handleClearSearch} 
-                    variant="outline"
-                    size="sm"
-                  >
-                    Limpar
-                  </Button>
-                )}
-              </div>
+          <CardHeader className="flex flex-col space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+              <CardTitle>Lista de Solicitações de Pagamentos</CardTitle>
               {canAdd && (
                 <Button onClick={() => router.push("/pagamentos/novo")}>Adicionar Pagamento</Button>
               )}
             </div>
+
+            {/* Busca por termo */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Pesquisar pagamento (mín. 3 letras)..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    handleSearch()
+                  }
+                }}
+                className="max-w-xs"
+                disabled={isSearching}
+              />
+              <Button 
+                onClick={handleSearch} 
+                variant="secondary"
+                disabled={isSearching}
+              >
+                {isSearching ? "Buscando..." : "Buscar"}
+              </Button>
+              {searchTerm && (
+                <Button 
+                  onClick={handleClearSearch} 
+                  variant="outline"
+                  size="sm"
+                >
+                  Limpar Busca
+                </Button>
+              )}
+            </div>
+
+            {/* Filtros */}
+            <Accordion type="single" collapsible>
+              <AccordionItem value="filters">
+                <AccordionTrigger>Filtros</AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* Filtro por Criado Por */}
+                    <div className="space-y-2">
+                      <Label htmlFor="criadoPor">Criado Por</Label>
+                      <Select value={criadoPor} onValueChange={setCriadoPor}>
+                        <SelectTrigger id="criadoPor">
+                          <SelectValue placeholder="Selecione o usuário" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos</SelectItem>
+                          {isLoadingCriadores ? (
+                            <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                          ) : (
+                            criadores.map((criador) => (
+                              <SelectItem key={criador} value={criador}>
+                                {criador}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Filtro Data Início */}
+                    <div className="space-y-2">
+                      <Label htmlFor="dataInicio">Data Início</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal h-10"
+                            title={dataInicio ? format(dataInicio, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data de início"}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                            {dataInicio ? (
+                              <>
+                                <span className="flex-1 text-left">
+                                  {format(dataInicio, "dd/MM/yyyy", { locale: ptBR })}
+                                </span>
+                                <X 
+                                  className="h-4 w-4 ml-2 shrink-0 opacity-50 hover:opacity-100" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDataInicio(undefined);
+                                    setDataInicioInput("");
+                                  }}
+                                />
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">Selecione</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={dataInicio}
+                            onSelect={handleDataInicioSelect}
+                            locale={ptBR}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Filtro Data Fim */}
+                    <div className="space-y-2">
+                      <Label htmlFor="dataFim">Data Fim</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start text-left font-normal h-10"
+                            title={dataFim ? format(dataFim, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data de fim"}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                            {dataFim ? (
+                              <>
+                                <span className="flex-1 text-left">
+                                  {format(dataFim, "dd/MM/yyyy", { locale: ptBR })}
+                                </span>
+                                <X 
+                                  className="h-4 w-4 ml-2 shrink-0 opacity-50 hover:opacity-100" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDataFim(undefined);
+                                    setDataFimInput("");
+                                  }}
+                                />
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">Selecione</span>
+                            )}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={dataFim}
+                            onSelect={handleDataFimSelect}
+                            locale={ptBR}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Botões de ação dos filtros */}
+                    <div className="space-y-2 md:col-span-2 lg:col-span-1">
+                      <Label>&nbsp;</Label>
+                      <div className="flex gap-2">
+                        <Button onClick={handleApplyFilters} className="flex-1">
+                          Aplicar
+                        </Button>
+                        <Button onClick={handleClearFilters} variant="outline" className="flex-1">
+                          Limpar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardHeader>
           <CardContent>
+            {/* Mensagem de erro com link do índice */}
+            {indexErrorLink && (
+              <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                    Índice do Firestore necessário
+                  </p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    Para usar os filtros, é necessário criar um índice no Firebase. Clique no link abaixo para criar automaticamente:
+                  </p>
+                  <a 
+                    href={indexErrorLink} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all"
+                  >
+                    {indexErrorLink}
+                  </a>
+                  <Button 
+                    onClick={() => {
+                      window.open(indexErrorLink, '_blank')
+                    }}
+                    className="w-fit mt-2"
+                    variant="outline"
+                  >
+                    Abrir no Firebase Console
+                  </Button>
+                </div>
+              </div>
+            )}
+            
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -252,11 +508,7 @@ export default function ListaPagamentosPage() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Finalidade</TableHead>
                     <TableHead>Situação</TableHead>
-                    <TableHead className="cursor-pointer select-none" onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}>Data de Vencimento
-                      <span className="inline-block align-middle ml-1">
-                        {order === 'asc' ? <ChevronUp className="w-4 h-4 inline" /> : <ChevronDown className="w-4 h-4 inline" />}
-                      </span>
-                    </TableHead>
+                    <TableHead>Data de Vencimento</TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -269,7 +521,7 @@ export default function ListaPagamentosPage() {
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-4 text-red-500">{error}</TableCell>
                     </TableRow>
-                  ) : filteredPagamentos.length === 0 ? (
+                  ) : pagamentos.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-4">Nenhum pagamento encontrado</TableCell>
                     </TableRow>
@@ -378,4 +630,4 @@ export default function ListaPagamentosPage() {
       </AlertDialog>
     </div>
   )
-} 
+}
