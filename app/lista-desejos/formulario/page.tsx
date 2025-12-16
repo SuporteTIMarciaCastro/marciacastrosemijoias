@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -14,7 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { addWishlistItem } from "@/lib/firebase/wishlist"
 import { CheckCircle2 } from "lucide-react"
-import { GoogleDriveUploader, UploadResult } from "@/google-drive-uploader-component/components/GoogleDriveUploader"
+import { CompressibleImageInput } from "@/components/compressible-image-input"
+// import { GoogleDriveUploader, UploadResult } from "@/google-drive-uploader-component/components/GoogleDriveUploader"
 
 export default function FormularioDesejoPage() {
   const [formData, setFormData] = useState({
@@ -31,11 +31,13 @@ export default function FormularioDesejoPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [isCompressingImage, setIsCompressingImage] = useState(false)
+  const [processingMessage, setProcessingMessage] = useState<string | null>(null)
   const [celularError, setCelularError] = useState("")
   const [jaComprouError, setJaComprouError] = useState("");
   const [lojaDestinoError, setLojaDestinoError] = useState("");
   const [imagemError, setImagemError] = useState("");
-  const router = useRouter()
   const { toast } = useToast()
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -61,38 +63,30 @@ export default function FormularioDesejoPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setSelectedFile(file)
-
-      // Criar preview da imagem
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImagePreview(event.target.result as string)
-        }
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   const uploadFileToDrive = async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append("file", file)
     formData.append("folderId", "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP") // ID da pasta da lista de desejos
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    })
+    // Mostrar animação de upload enquanto o arquivo é processado
+    setIsUploadingImage(true)
+    setProcessingMessage("Enviando sua solicitação...")
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
 
-    if (!response.ok) {
-      throw new Error("Erro ao fazer upload do arquivo")
+      if (!response.ok) {
+        throw new Error("Erro ao fazer upload do arquivo")
+      }
+
+      const result = await response.json()
+      return result.fileUrl
+    } finally {
+      setProcessingMessage(null)
+      setIsUploadingImage(false)
     }
-
-    const result = await response.json()
-    return result.fileUrl
   }
 
   const validateCelular = (celular: string) => {
@@ -236,10 +230,6 @@ export default function FormularioDesejoPage() {
                 Nós somos uma marca reconhecida por possuir peças elegantes e de alta qualidade, perfeitas para
                 complementar qualquer look.
               </p>
-              <p className="text-gray-700">
-                Vejo que você está interessada em adquirir alguns de nossos acessórios. Qual peça específica você
-                gostaria de ver disponível em nossas lojas? Faremos o nosso melhor para atender aos seus desejos.
-              </p>
             </div>
 
             <Card>
@@ -304,9 +294,7 @@ export default function FormularioDesejoPage() {
                         <SelectItem value="Não">Não</SelectItem>
                       </SelectContent>
                     </Select>
-                    {jaComprouError && (
-                      <span className="text-red-500 text-xs">{jaComprouError}</span>
-                    )}
+                    {jaComprouError && <span className="text-red-500 text-xs">{jaComprouError}</span>}
                   </div>
 
                   <div className="space-y-2">
@@ -330,38 +318,24 @@ export default function FormularioDesejoPage() {
                         <SelectItem value="Teresina Shopping">Teresina Shopping</SelectItem>
                       </SelectContent>
                     </Select>
-                    {lojaDestinoError && (
-                      <span className="text-red-500 text-xs">{lojaDestinoError}</span>
-                    )}
+                    {lojaDestinoError && <span className="text-red-500 text-xs">{lojaDestinoError}</span>}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="imagem">Imagem do Produto:</Label>
-                    <div className="flex flex-col gap-4">
-                      <Input
-                        id="imagem"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className={`cursor-pointer${imagemError ? " border-red-500" : ""}`}
-                        required
-                      />
-                      {imagemError && (
-                        <span className="text-red-500 text-xs">{imagemError}</span>
-                      )}
-                      {imagePreview && (
-                        <div className="mt-2">
-                          <p className="text-sm text-gray-500 mb-1">Preview:</p>
-                          <Image
-                            src={imagePreview}
-                            alt="Preview"
-                            width={200}
-                            height={200}
-                            className="object-cover rounded-md"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <CompressibleImageInput
+                      id="imagem"
+                      required
+                      previewSrc={imagePreview}
+                      onPreviewChange={setImagePreview}
+                      onFileProcessed={setSelectedFile}
+                      onErrorMessageChange={setImagemError}
+                      errorMessage={imagemError}
+                      isUploading={isUploadingImage}
+                      processingMessage={processingMessage}
+                      onCompressingChange={setIsCompressingImage}
+                      onProcessingMessageChange={setProcessingMessage}
+                    />
                   </div>
 
                   <div className="space-y-2">
@@ -377,7 +351,7 @@ export default function FormularioDesejoPage() {
                     />
                   </div>
 
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full" disabled={isSubmitting || isCompressingImage}>
                     {isSubmitting ? "Enviando..." : "Enviar"}
                   </Button>
                 </form>
