@@ -149,8 +149,11 @@ export default function FormularioDesejoPage() {
         imagemUrl = await uploadFileToDrive(selectedFile)
       }
 
+      const celularNumerico = formData.celular.replace(/\D/g, "")
+
       await addWishlistItem({
         ...formData,
+        celular: celularNumerico,
         nome: formData.nome.toLowerCase(), // Converter nome para lowercase
         imagemUrl,
         jaComprou: formData.jaComprou === "Sim",

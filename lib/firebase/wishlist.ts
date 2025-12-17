@@ -3,12 +3,14 @@ import { db } from "./config"
 import type { WishlistItem } from "@/types"
 
 const COLLECTION_NAME = "wishlist"
+const normalizePhone = (phone: string) => phone?.replace(/\D/g, "") || ""
 
 // Adicionar um novo item à lista de desejos
 export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...item,
+      celular: normalizePhone(item.celular),
       nome: item.nome?.toLowerCase() || '', // Converter nome para lowercase
       data: new Date().toISOString(),
       status: 'Pendente',
@@ -191,6 +193,9 @@ export async function updateWishlistItem(id: string, data: Partial<Omit<Wishlist
   // Se o nome foi alterado, converter para lowercase
   if (data.nome) {
     updateData.nome = data.nome.toLowerCase()
+  }
+  if (data.celular) {
+    updateData.celular = normalizePhone(data.celular)
   }
   
   await updateDoc(docRef, updateData)

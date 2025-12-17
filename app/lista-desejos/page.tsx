@@ -48,6 +48,14 @@ function getGoogleDriveEmbedUrl(url: string): string {
   return url;
 }
 
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  return value;
+};
+
 export default function ListaDesejosPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -322,7 +330,7 @@ export default function ListaDesejosPage() {
                           )}
                         </TableCell>
                         <TableCell>{item.nome}</TableCell>
-                        <TableCell>{item.celular}</TableCell>
+                        <TableCell>{formatPhone(item.celular)}</TableCell>
                         <TableCell>{item.produto}</TableCell>
                         <TableCell>{item.lojaDestino}</TableCell>
                         <TableCell>
