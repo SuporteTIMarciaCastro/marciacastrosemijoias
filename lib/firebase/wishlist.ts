@@ -4,6 +4,7 @@ import type { WishlistItem } from "@/types"
 
 const COLLECTION_NAME = "wishlist"
 const normalizePhone = (phone: string) => phone?.replace(/\D/g, "") || ""
+const isPhoneSearch = (term: string) => normalizePhone(term).length >= 3
 
 // Adicionar um novo item à lista de desejos
 export async function addWishlistItem(item: Omit<WishlistItem, "id">) {
@@ -105,12 +106,21 @@ export async function fetchWishlistItemsPaginatedWithFilters({
       constraints.push(where("avisado", "==", avisado === "sim"));
     }
     
-    // Busca por nome (prefixo)
-    let searchTermLower = searchTerm.trim().toLowerCase();
-    if (searchTermLower) {
-      constraints.push(orderBy("nome"));
-      constraints.push(fbStartAt(searchTermLower));
-      constraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+    const rawSearchTerm = searchTerm.trim();
+    const searchTermLower = rawSearchTerm.toLowerCase();
+    const phoneSearch = normalizePhone(rawSearchTerm);
+    const usePhone = isPhoneSearch(rawSearchTerm);
+
+    if (rawSearchTerm) {
+      if (usePhone) {
+        constraints.push(orderBy("celular"));
+        constraints.push(fbStartAt(phoneSearch));
+        constraints.push(fbEndAt(phoneSearch + '\uf8ff'));
+      } else {
+        constraints.push(orderBy("nome"));
+        constraints.push(fbStartAt(searchTermLower));
+        constraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+      }
     } else {
       constraints.push(orderBy("createdAt", "desc"));
     }
@@ -139,21 +149,31 @@ export async function fetchWishlistItemsPaginatedWithFilters({
     if (avisado && avisado !== "todos") {
       countConstraints.push(where("avisado", "==", avisado === "sim"));
     }
-    if (searchTermLower) {
-      countConstraints.push(orderBy("nome"));
-      countConstraints.push(fbStartAt(searchTermLower));
-      countConstraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+    if (rawSearchTerm) {
+      if (usePhone) {
+        countConstraints.push(orderBy("celular"));
+        countConstraints.push(fbStartAt(phoneSearch));
+        countConstraints.push(fbEndAt(phoneSearch + '\uf8ff'));
+      } else {
+        countConstraints.push(orderBy("nome"));
+        countConstraints.push(fbStartAt(searchTermLower));
+        countConstraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+      }
     } else {
       countConstraints.push(orderBy("createdAt", "desc"));
     }
     
     const countQuery = query(col, ...countConstraints);
-    const countSnapshot = await getDocs(countQuery);
-    const totalCount = countSnapshot.size;
+    const countSnapshot = await getCountFromServer(countQuery);
+    const totalCount = countSnapshot.data().count;
     
     return { items, lastDoc, totalCount };
   } catch (error) {
     console.error("Erro ao buscar itens paginados com filtros:", error);
+    const match = error instanceof Error ? error.message.match(/https?:\/\/[^\s]+/) : null;
+    if (match?.[0]) {
+      console.error("Crie o índice necessário nesta URL:", match[0]);
+    }
     
     // Verificar se é erro de índice faltando
     if (error instanceof Error && error.message.includes('indexes')) {

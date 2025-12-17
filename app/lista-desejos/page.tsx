@@ -243,7 +243,7 @@ export default function ListaDesejosPage() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="flex gap-2 md:col-span-1">
                   <Input
-                    placeholder="Pesquisar por nome ou produto..."
+                    placeholder="Pesquisar por nome ou celular..."
                     value={inputSearchTerm}
                     onChange={(e) => setInputSearchTerm(e.target.value)}
                   />
