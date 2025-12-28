@@ -405,7 +405,7 @@ export default function ListaGarantiaPage() {
     if (trimmed.length < 3) {
       toast({
         title: "Busca muito curta",
-        description: "Digite pelo menos 3 letras antes de pesquisar.",
+        description: "Digite pelo menos 3 caracteres antes de pesquisar.",
         variant: "destructive",
       })
       return
@@ -413,6 +413,18 @@ export default function ListaGarantiaPage() {
 
     setSearchInput(trimmed)
     setSearchTerm(trimmed)
+  }
+
+  const formatWhatsapp = (value?: string | null) => {
+    if (!value) return "-"
+    const digits = value.replace(/\D/g, "")
+    if (digits.length === 11) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
+    }
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
+    }
+    return value
   }
 
   const statusOptions = [
@@ -470,7 +482,7 @@ export default function ListaGarantiaPage() {
               <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
                   <Input
-                    placeholder="Pesquisar por nome (mín. 3 letras)"
+                    placeholder="Pesquisar por nome ou WhatsApp (mín. 3 caracteres)"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -576,7 +588,7 @@ export default function ListaGarantiaPage() {
                     <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-600 dark:text-gray-300">
                       <div><span className="font-medium">Loja:</span> {item.loja}</div>
                       <div><span className="font-medium">Entrada:</span> {item.dataValidade}</div>
-                      <div><span className="font-medium">WhatsApp:</span> {item.whatsapp || "-"}</div>
+                      <div><span className="font-medium">WhatsApp:</span> {formatWhatsapp(item.whatsapp)}</div>
                     </div>
                   </div>
                 ))
@@ -627,7 +639,7 @@ export default function ListaGarantiaPage() {
                           )}
                         </td>
                         <td className="py-3 px-4">{item.nome.toUpperCase()}</td>
-                        <td className="py-3 px-4">{item.whatsapp || "-"}</td>
+                        <td className="py-3 px-4">{formatWhatsapp(item.whatsapp)}</td>
                         <td className="py-3 px-4">{item.dataValidade}</td>
                         <td className="py-3 px-4">
                           <StatusBadge status={item.status} />

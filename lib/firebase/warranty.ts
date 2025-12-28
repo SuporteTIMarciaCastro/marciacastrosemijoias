@@ -3,12 +3,21 @@ import { db } from "./config"
 import type { WarrantyItem } from "@/types"
 
 const COLLECTION_NAME = "warranty"
+const normalizeWhatsappValue = (value: unknown): string => {
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value).replace(/\D+/g, "")
+  }
+  return ""
+}
+
+const isPhoneSearch = (term: string): boolean => normalizeWhatsappValue(term).length >= 3
 
 // Adicionar uma nova garantia
 export async function addWarrantyItem(item: Omit<WarrantyItem, "id">) {
   try {
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...item,
+      whatsapp: normalizeWhatsappValue(item.whatsapp),
       createdAt: new Date().toISOString(),
     })
     return docRef.id
@@ -61,10 +70,16 @@ export async function fetchWarrantyItem(id: string): Promise<WarrantyItem | null
 export async function updateWarrantyItem(id: string, data: Partial<WarrantyItem>) {
   try {
     const docRef = doc(db, COLLECTION_NAME, id)
-    await updateDoc(docRef, {
+    const updatePayload: Partial<WarrantyItem> = {
       ...data,
       updatedAt: new Date().toISOString(),
-    })
+    }
+
+    if (Object.prototype.hasOwnProperty.call(data, "whatsapp")) {
+      updatePayload.whatsapp = normalizeWhatsappValue(data.whatsapp)
+    }
+
+    await updateDoc(docRef, updatePayload)
   } catch (error) {
     console.error("Erro ao atualizar garantia:", error)
     throw error
@@ -189,11 +204,21 @@ export async function fetchWarrantyItemsPaginatedWithFilters({
       constraints.push(where("finalized", "==", finalizada === "sim"));
     }
     // Busca por nome (prefixo)
-    let searchTermLower = searchTerm.trim().toLowerCase();
-    if (searchTermLower) {
-      constraints.push(orderBy("nome"));
-      constraints.push(fbStartAt(searchTermLower));
-      constraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+    const rawSearchTerm = searchTerm.trim();
+    const searchTermLower = rawSearchTerm.toLowerCase();
+    const normalizedPhoneSearch = normalizeWhatsappValue(rawSearchTerm);
+    const usePhoneSearch = rawSearchTerm.length > 0 && isPhoneSearch(rawSearchTerm);
+
+    if (rawSearchTerm) {
+      if (usePhoneSearch) {
+        constraints.push(orderBy("whatsapp"));
+        constraints.push(fbStartAt(normalizedPhoneSearch));
+        constraints.push(fbEndAt(normalizedPhoneSearch + '\uf8ff'));
+      } else {
+        constraints.push(orderBy("nome"));
+        constraints.push(fbStartAt(searchTermLower));
+        constraints.push(fbEndAt(searchTermLower + '\uf8ff'));
+      }
     } else {
       constraints.push(orderBy("createdAt", "desc"));
     }
