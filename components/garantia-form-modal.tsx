@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import imageCompression from "browser-image-compression"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { addWarrantyItem, updateWarrantyItem, fetchWarrantyItem } from "@/lib/firebase/warranty"
 import { StatusBadge } from "@/components/status-badge"
 import { useAuth } from "@/context/auth-context"
+import { Loader2 } from "lucide-react"
 
 interface GarantiaFormModalProps {
   isOpen: boolean
@@ -20,6 +22,12 @@ interface GarantiaFormModalProps {
   itemId?: string // Se fornecido, estamos editando; caso contrário, estamos adicionando
   onSuccess: () => void
 }
+
+const MAX_FILE_SIZE_MB = 5
+const COMPRESSION_TARGET_MB = 1.5
+const MAX_WIDTH_OR_HEIGHT = 2000
+
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }: GarantiaFormModalProps) {
   const [formData, setFormData] = useState({
@@ -39,11 +47,33 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [notaCompraFile, setNotaCompraFile] = useState<File | null>(null)
   const [notaCompraPreview, setNotaCompraPreview] = useState<string | null>(null)
+  const [isProcessingNotaCompra, setIsProcessingNotaCompra] = useState(false)
+  const [notaCompraProcessingMessage, setNotaCompraProcessingMessage] = useState<string | null>(null)
+  const [notaCompraError, setNotaCompraError] = useState<string | null>(null)
+  const [isProcessingImagemPecas, setIsProcessingImagemPecas] = useState(false)
+  const [imagemPecasProcessingMessage, setImagemPecasProcessingMessage] = useState<string | null>(null)
+  const [imagemPecasError, setImagemPecasError] = useState<string | null>(null)
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+  const [uploadProcessingMessage, setUploadProcessingMessage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const [originalItem, setOriginalItem] = useState<any>(null)
   const { user } = useAuth()
+
+  const readFileAsDataURL = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        if (typeof reader.result === "string") {
+          resolve(reader.result)
+        } else {
+          reject(new Error("Não foi possível gerar o preview do arquivo."))
+        }
+      }
+      reader.onerror = () => reject(reader.error ?? new Error("Erro ao ler o arquivo selecionado."))
+      reader.readAsDataURL(file)
+    })
 
   // Carregar dados se estiver editando
   useEffect(() => {
@@ -108,6 +138,14 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     setImagePreviews([])
     setNotaCompraFile(null)
     setNotaCompraPreview(null)
+    setNotaCompraError(null)
+    setImagemPecasError(null)
+    setNotaCompraProcessingMessage(null)
+    setImagemPecasProcessingMessage(null)
+    setIsProcessingNotaCompra(false)
+    setIsProcessingImagemPecas(false)
+    setIsUploadingFiles(false)
+    setUploadProcessingMessage(null)
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -137,38 +175,155 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      setImageFiles(prev => [...prev, ...files])
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const target = e.target
+    const files = target.files
 
-      // Criar previews das imagens
-      files.forEach(file => {
-        const reader = new FileReader()
-        reader.onload = (event: ProgressEvent<FileReader>) => {
-          const result = event.target?.result
-          if (result) {
-            setImagePreviews(prev => [...prev, result as string])
-          }
+    if (!files || files.length === 0) {
+      return
+    }
+
+    setImagemPecasError(null)
+    setIsProcessingImagemPecas(true)
+    setImagemPecasProcessingMessage("Otimizando imagens selecionadas... Isso pode levar alguns instantes.")
+
+    try {
+      const processedFiles: File[] = []
+
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) {
+          toast({
+            title: "Arquivo inválido",
+            description: "Envie apenas arquivos de imagem para este campo.",
+            variant: "destructive",
+          })
+          continue
         }
-        reader.readAsDataURL(file)
-      })
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          toast({
+            title: "Arquivo muito grande",
+            description: "Cada imagem precisa ter no máximo 5MB.",
+            variant: "destructive",
+          })
+          setImagemPecasError("Cada imagem precisa ter no máximo 5MB.")
+          continue
+        }
+
+        let finalFile = file
+        try {
+          finalFile = await imageCompression(file, {
+            maxSizeMB: COMPRESSION_TARGET_MB,
+            maxWidthOrHeight: MAX_WIDTH_OR_HEIGHT,
+            useWebWorker: true,
+            initialQuality: 0.6,
+          })
+        } catch (error) {
+          console.error("Erro ao comprimir imagem:", error)
+          toast({
+            title: "Aviso",
+            description: "Não conseguimos comprimir uma das imagens. Vamos enviar o arquivo original.",
+          })
+          finalFile = file
+        }
+
+        processedFiles.push(finalFile)
+        const preview = await readFileAsDataURL(finalFile)
+        setImagePreviews((prev) => [...prev, preview])
+      }
+
+      if (processedFiles.length > 0) {
+        setImageFiles((prev) => [...prev, ...processedFiles])
+      }
+
+      if (processedFiles.length === 0) {
+        setImagemPecasError("Nenhuma imagem válida foi selecionada.")
+      }
+    } finally {
+      setIsProcessingImagemPecas(false)
+      setImagemPecasProcessingMessage(null)
+      target.value = ""
     }
   }
 
-  const handleNotaCompraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      setNotaCompraFile(file)
+  const handleNotaCompraChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const target = e.target
+    const file = target.files?.[0]
+    if (!file) {
+      return
+    }
 
-      // Criar preview do documento
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setNotaCompraPreview(event.target.result as string)
+    setNotaCompraError(null)
+
+    const isImage = file.type.startsWith("image/")
+    const isPdf = file.type === "application/pdf"
+
+    if (!isImage && !isPdf) {
+      setNotaCompraError("Envie apenas imagem ou PDF.")
+      toast({
+        title: "Formato inválido",
+        description: "A nota de compra precisa ser uma imagem ou um PDF.",
+        variant: "destructive",
+      })
+      target.value = ""
+      return
+    }
+
+    if (!isImage && file.size > MAX_FILE_SIZE_BYTES) {
+      setNotaCompraError("O arquivo precisa ter no máximo 5MB.")
+      toast({
+        title: "Arquivo muito grande",
+        description: "O arquivo da nota precisa ter no máximo 5MB.",
+        variant: "destructive",
+      })
+      target.value = ""
+      return
+    }
+
+    if (isImage && file.size > MAX_FILE_SIZE_BYTES) {
+      setNotaCompraError("O arquivo precisa ter no máximo 5MB.")
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem da nota precisa ter no máximo 5MB.",
+        variant: "destructive",
+      })
+      target.value = ""
+      return
+    }
+
+    setIsProcessingNotaCompra(true)
+    setNotaCompraProcessingMessage(
+      isImage ? "Otimizando a imagem da nota..." : "Preparando o arquivo da nota para envio..."
+    )
+
+    try {
+      let processedFile = file
+
+      if (isImage) {
+        try {
+          processedFile = await imageCompression(file, {
+            maxSizeMB: COMPRESSION_TARGET_MB,
+            maxWidthOrHeight: MAX_WIDTH_OR_HEIGHT,
+            useWebWorker: true,
+            initialQuality: 0.6,
+          })
+        } catch (error) {
+          console.error("Erro ao comprimir imagem da nota:", error)
+          toast({
+            title: "Aviso",
+            description: "Não conseguimos comprimir a imagem da nota. Vamos enviar o arquivo original.",
+          })
+          processedFile = file
         }
       }
-      reader.readAsDataURL(file)
+
+      setNotaCompraFile(processedFile)
+      const preview = await readFileAsDataURL(processedFile)
+      setNotaCompraPreview(preview)
+    } finally {
+      setIsProcessingNotaCompra(false)
+      setNotaCompraProcessingMessage(null)
+      target.value = ""
     }
   }
 
@@ -224,15 +379,26 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
 
     try {
-      // Upload das imagens
-      const imagemPecasUrls = await Promise.all(
-        imageFiles.map(file => uploadFileToDrive(file))
-      )
+      const shouldShowUploadMessage = imageFiles.length > 0 || Boolean(notaCompraFile)
+      if (shouldShowUploadMessage) {
+        setIsUploadingFiles(true)
+        setUploadProcessingMessage("Enviando anexos e imagens. Isso pode levar alguns instantes...")
+      }
 
-      // Upload da nota de compra
+      let imagemPecasUrls: string[] = []
       let notaCompraUrl = ""
-      if (notaCompraFile) {
-        notaCompraUrl = await uploadFileToDrive(notaCompraFile)
+
+      try {
+        imagemPecasUrls = await Promise.all(imageFiles.map((file) => uploadFileToDrive(file)))
+
+        if (notaCompraFile) {
+          notaCompraUrl = await uploadFileToDrive(notaCompraFile)
+        }
+      } finally {
+        if (shouldShowUploadMessage) {
+          setUploadProcessingMessage(null)
+          setIsUploadingFiles(false)
+        }
       }
 
       const dataToSave = {
@@ -318,8 +484,9 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   const statusOptions = ["Recebido loja", "Recebido comercial","Recebido fábrica", "Devolvido comercial","Devolvido loja", "Devolvido cliente","Extraviada-crédito cliente", "Negado"]
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{itemId ? "Editar Garantia" : "Adicionar Nova Garantia"}</DialogTitle>
         </DialogHeader>
@@ -456,54 +623,84 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
             <div className="space-y-2">
               <Label htmlFor="notaCompra">Nota de Compra</Label>
-              <Input 
-                id="notaCompra" 
-                type="file" 
-                accept="image/*,.pdf" 
-                onChange={handleNotaCompraChange} 
-              />
-              <p className="text-sm text-gray-500">Apenas arquivos PDF ou imagem. Tamanho máximo: 900KB</p>
-              {notaCompraPreview && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-500 mb-1">Preview:</p>
-                  {notaCompraFile?.type === "application/pdf" ? (
-                    <p className="text-sm text-green-600">PDF selecionado: {notaCompraFile.name}</p>
-                  ) : (
-                    <img
-                      src={notaCompraPreview}
-                      alt="Preview da nota"
-                      className="max-w-[200px] max-h-[200px] object-cover rounded-md"
-                    />
-                  )}
-                </div>
-              )}
+              <div className="relative rounded-md border border-dashed border-gray-200 p-3">
+                <Input
+                  id="notaCompra"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={handleNotaCompraChange}
+                  disabled={isProcessingNotaCompra || isSubmitting || isUploadingFiles}
+                  className="cursor-pointer"
+                />
+                {notaCompraPreview && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 mb-1">Preview:</p>
+                    {notaCompraFile?.type === "application/pdf" ? (
+                      <p className="text-sm text-green-600">PDF selecionado: {notaCompraFile.name}</p>
+                    ) : (
+                      <img
+                        src={notaCompraPreview}
+                        alt="Preview da nota"
+                        className="max-w-[200px] max-h-[200px] object-cover rounded-md"
+                      />
+                    )}
+                  </div>
+                )}
+                {isProcessingNotaCompra && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-md bg-black/40 text-white">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="px-4 text-center text-sm">
+                      {notaCompraProcessingMessage ?? "Processando arquivo..."}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {notaCompraError && <span className="text-xs text-red-500">{notaCompraError}</span>}
+              <p className="text-sm text-gray-500">
+                Apenas arquivos PDF ou imagem. Tamanho máximo de 5MB.
+              </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="imagemPecas">Imagem das Peças para Avaliação</Label>
-              <Input 
-                id="imagemPecas" 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImageChange}
-                multiple 
-              />
-              <p className="text-sm text-gray-500">Selecione uma ou mais imagens. Tamanho máximo por arquivo: 900KB</p>
-              {imagePreviews.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-500 mb-1">Previews:</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {imagePreviews.map((preview, index) => (
-                      <img
-                        key={index}
-                        src={preview}
-                        alt={`Preview ${index + 1}`}
-                        className="max-w-[200px] max-h-[200px] object-cover rounded-md"
-                      />
-                    ))}
+              <div className="relative rounded-md border border-dashed border-gray-200 p-3">
+                <Input
+                  id="imagemPecas"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  multiple
+                  disabled={isProcessingImagemPecas || isSubmitting || isUploadingFiles}
+                  className="cursor-pointer"
+                />
+                {imagePreviews.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm text-gray-500 mb-1">Previews:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {imagePreviews.map((preview, index) => (
+                        <img
+                          key={index}
+                          src={preview}
+                          alt={`Preview ${index + 1}`}
+                          className="max-w-[200px] max-h-[200px] rounded-md object-cover"
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                {isProcessingImagemPecas && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 rounded-md bg-black/40 text-white">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="px-4 text-center text-sm">
+                      {imagemPecasProcessingMessage ?? "Processando imagens..."}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {imagemPecasError && <span className="text-xs text-red-500">{imagemPecasError}</span>}
+              <p className="text-sm text-gray-500">
+                Selecione uma ou mais imagens (máx. 5MB cada).
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -543,6 +740,23 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
           </form>
         )}
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {isUploadingFiles && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div
+            role="alertdialog"
+            aria-live="assertive"
+            className="flex w-[320px] flex-col items-center gap-3 rounded-lg bg-white p-6 text-center shadow-2xl"
+          >
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="text-base font-semibold text-gray-900">Enviando anexos</p>
+            <p className="text-sm text-gray-600">
+              {uploadProcessingMessage ?? "Enviando anexos e imagens. Isso pode levar alguns instantes..."}
+            </p>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
