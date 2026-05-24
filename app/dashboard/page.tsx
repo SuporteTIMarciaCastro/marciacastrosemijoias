@@ -12,7 +12,7 @@ import { PermissionKey } from "@/types/permissions"
 interface MenuItem {
   title: string
   path: string
-  permission: PermissionKey
+  permission: PermissionKey | null
 }
 
 export default function DashboardPage() {
@@ -36,11 +36,13 @@ export default function DashboardPage() {
     { title: "Lista de Materiais", path: "/lista-solicitacoes", permission: "listaMateriais" },
     { title: "Lista de Pagamentos", path: "/pagamentos", permission: "pagamentos" },
     { title: "Lista de Usuários", path: "/usuarios", permission: "listaUsuarios" },
+    { title: "Estatísticas de Atendimento", path: "/estatisticas-atendimento", permission: "estatisticasAtendimento" },
   ]
 
-  const filteredMenuItems = menuItems.filter(item => 
-    user.permissions?.[item.permission]?.visualizarPage
-  )
+  const filteredMenuItems = menuItems.filter(item => {
+    if (!item.permission) return true
+    return user.permissions?.[item.permission]?.visualizarPage
+  })
 
   return (
     <div className="flex min-h-screen flex-col">

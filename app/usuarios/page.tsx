@@ -43,6 +43,7 @@ export default function UsuariosPage() {
     listaMateriais: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false },
     pagamentos: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false },
     listaUsuarios: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, remover: false },
+    estatisticasAtendimento: { visualizarPage: false },
   };
 
   const [form, setForm] = useState(initialFormState);
@@ -191,11 +192,14 @@ export default function UsuariosPage() {
       { key: 'remover', label: 'Remover item' },
     ]},
     { key: 'listaUsuarios', label: 'Lista de Usuários', fields: [
-        { key: 'visualizarPage', label: 'Visualizar Página' }, 
+        { key: 'visualizarPage', label: 'Visualizar Página' },
         { key: 'visualizar', label: 'Visualizar Usuário' },
-        { key: 'adicionar', label: 'Adicionar Usuário' }, 
+        { key: 'adicionar', label: 'Adicionar Usuário' },
         { key: 'editar', label: 'Editar Usuário' },
         { key: 'remover', label: 'Remover Usuário' },
+    ]},
+    { key: 'estatisticasAtendimento', label: 'Estatísticas de Atendimento', fields: [
+        { key: 'visualizarPage', label: 'Visualizar Página' },
     ]},
   ]), []);
 

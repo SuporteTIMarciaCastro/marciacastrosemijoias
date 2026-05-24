@@ -24,7 +24,9 @@ export function usePermissions() {
             listaDesejos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
             listaGarantia: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true, finalizar: true },
             listaMateriais: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
-            pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true }
+            pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
+            listaUsuarios: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
+            estatisticasAtendimento: { visualizarPage: true },
           });
           setLoading(false);
           return;

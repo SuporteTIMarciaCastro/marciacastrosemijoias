@@ -38,6 +38,7 @@ export default function Header({ title }: HeaderProps) {
     { title: "Lista de Garantia", path: "/lista-garantia", permission: "listaGarantia" },
     { title: "Lista de Materiais", path: "/lista-solicitacoes", permission: "listaMateriais" },
     { title: "Lista de Pagamentos", path: "/pagamentos", permission: "pagamentos" },
+    { title: "Estatísticas de Atendimento", path: "/estatisticas-atendimento", permission: "estatisticasAtendimento" },
   ]
 
   const filteredMenuItems = menuItems.filter(item => {
