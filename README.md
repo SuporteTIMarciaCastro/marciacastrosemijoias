@@ -8,6 +8,7 @@ Este sistema foi desenvolvido para gerenciar diferentes aspectos do negócio da 
 ### 1. Lista de Desejos
 A lista de desejos permite cadastrar e gerenciar produtos desejados pelos clientes.
 
+
 #### Recursos:
 - Cadastro de novos itens com:
   - Nome do cliente
