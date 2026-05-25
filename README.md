@@ -24,6 +24,7 @@ A lista de desejos permite cadastrar e gerenciar produtos desejados pelos client
 ### 2. Lista de Garantia
 Gerencia as garantias dos produtos vendidos.
 
+
 #### Recursos:
 - Cadastro de garantias com:
   - Nome do cliente
