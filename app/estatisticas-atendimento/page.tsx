@@ -267,7 +267,7 @@ export default function EstatisticasAtendimentoPage() {
       }
     })
 
-    return result.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+    return result.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "", "pt-BR"))
   }, [data])
 
   const aggregated = useMemo(() => {
