@@ -97,13 +97,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#18181b] px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md bg-[#23232b] text-white shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#2a1116] via-[#1c0c10] to-[#140a0c] px-4 py-12 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md border-white/10 bg-[#241318]/95 text-white shadow-elevated backdrop-blur">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center mb-4">
-            <Image src="/logo.png" alt="Marcia Castro Semijoias" width={120} height={120} priority />
+            <Image src="/logo-branca.png" alt="Marcia Castro Semijoias" width={220} height={93} priority className="h-auto w-[200px] object-contain" />
           </div>
-          <CardTitle className="text-2xl font-bold text-white">Comercial - Login</CardTitle>
+          <div className="mx-auto h-px w-12 bg-white/20" />
+          <CardTitle className="font-serif text-2xl font-semibold text-white">Comercial · Login</CardTitle>
           <CardDescription className="text-gray-300">Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,7 +117,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400"
+                className="bg-[#180d10] text-white border-white/15 placeholder-gray-400"
               />
             </div>
             <div className="space-y-2">
@@ -128,7 +129,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-[#18181b] text-white border-gray-600 placeholder-gray-400 pr-10"
+                  className="bg-[#180d10] text-white border-white/15 placeholder-gray-400 pr-10"
                 />
                 <button
                   type="button"
@@ -150,9 +151,9 @@ export default function LoginPage() {
                 </p>
               )}
             </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold" 
+            <Button
+              type="submit"
+              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium tracking-wide"
               disabled={isLoading || loading}
             >
               {isLoading ? "Entrando..." : "Entrar"}

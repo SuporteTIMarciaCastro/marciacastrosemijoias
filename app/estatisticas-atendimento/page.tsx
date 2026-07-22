@@ -662,7 +662,7 @@ export default function EstatisticasAtendimentoPage() {
                 </Popover>
               </div>
 
-              <Button onClick={loadData} disabled={isLoading} className="bg-red-600 hover:bg-red-700">
+              <Button onClick={loadData} disabled={isLoading}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
                 {isLoading ? "Carregando..." : "Atualizar"}
               </Button>

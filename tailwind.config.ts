@@ -10,6 +10,14 @@ const config: Config = {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+  			serif: ['var(--font-serif)', 'Georgia', 'Times New Roman', 'serif'],
+  		},
+  		boxShadow: {
+  			soft: '0 1px 2px rgba(20, 14, 13, 0.04), 0 4px 16px -4px rgba(20, 14, 13, 0.08)',
+  			elevated: '0 8px 32px -8px rgba(20, 14, 13, 0.14)',
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',

@@ -13,6 +13,8 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         return "bg-indigo-100 text-indigo-800"
       case "Recebido fábrica":
         return "bg-violet-100 text-violet-800"
+      case "Recebido no escritório":
+        return "bg-purple-100 text-purple-800"
       case "Devolvido comercial":
         return "bg-orange-50 text-pink-800"
       case "Devolvido loja":

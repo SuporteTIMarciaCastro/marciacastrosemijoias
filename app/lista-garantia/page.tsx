@@ -431,6 +431,7 @@ export default function ListaGarantiaPage() {
     "Recebido loja",
     "Recebido comercial",
     "Recebido fábrica",
+    "Recebido no escritório",
     "Devolvido comercial",
     "Devolvido loja",
     "Devolvido cliente",

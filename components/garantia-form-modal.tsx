@@ -481,7 +481,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
   }
 
-  const statusOptions = ["Recebido loja", "Recebido comercial","Recebido fábrica", "Devolvido comercial","Devolvido loja", "Devolvido cliente","Extraviada-crédito cliente", "Negado"]
+  const statusOptions = ["Recebido loja", "Recebido comercial","Recebido fábrica", "Recebido no escritório", "Devolvido comercial","Devolvido loja", "Devolvido cliente","Extraviada-crédito cliente", "Negado"]
 
   return (
     <>

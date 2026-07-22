@@ -47,7 +47,7 @@ export default function Header({ title }: HeaderProps) {
   })
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-background text-foreground shadow-sm">
+    <header className="sticky top-0 z-10 border-b border-primary/15 bg-background/85 text-foreground shadow-soft backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -59,8 +59,8 @@ export default function Header({ title }: HeaderProps) {
             </SheetTrigger>
             <SheetContent side="left" className="w-[240px] sm:w-[300px]">
               <div className="flex flex-col gap-6 py-4">
-                <div className="flex justify-center">
-                  <Image src="/logo.png" alt="Marcia Castro Semijoias" width={100} height={100} priority />
+                <div className="flex justify-center px-2">
+                  <Image src="/logo-preto.png" alt="Marcia Castro Semijoias" width={180} height={76} priority className="h-auto w-[160px] object-contain dark:invert" />
                 </div>
                 <nav className="flex flex-col gap-2">
                   {filteredMenuItems.map((item, index) => (
@@ -88,12 +88,13 @@ export default function Header({ title }: HeaderProps) {
             </SheetContent>
           </Sheet>
 
-          <div className="hidden md:flex items-center gap-2">
-            <Image src="/logo.png" alt="Marcia Castro Semijoias" width={40} height={40} priority />
-            <span className="text-lg font-semibold">Marcia Castro</span>
+          <div className="hidden md:flex items-center">
+            <Image src="/logo-preto.png" alt="Marcia Castro Semijoias" width={130} height={55} priority className="h-9 w-auto object-contain dark:invert" />
           </div>
 
-          <h1 className="text-lg font-semibold md:text-xl">{title}</h1>
+          <div className="hidden md:block h-6 w-px bg-border" />
+
+          <h1 className="font-serif text-lg font-semibold tracking-tight text-primary md:text-xl">{title}</h1>
         </div>
 
         <div className="flex items-center gap-4">
