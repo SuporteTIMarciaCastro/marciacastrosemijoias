@@ -19,6 +19,9 @@ export interface WishlistItem {
 // Tipo para itens de garantia
 export interface WarrantyItem {
   id: string
+  // Número sequencial gravado na criação. Opcional: garantias criadas antes
+  // desta funcionalidade não possuem o campo e exibem "—".
+  numeroPedido?: number
   nome: string
   vendedor?: string
   dataCompra: string

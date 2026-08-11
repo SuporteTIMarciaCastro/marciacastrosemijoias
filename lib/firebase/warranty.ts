@@ -1,8 +1,15 @@
-import { collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, startAt as fbStartAt, endAt as fbEndAt, where, QueryDocumentSnapshot } from "firebase/firestore"
+import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, startAt as fbStartAt, endAt as fbEndAt, where, runTransaction, QueryDocumentSnapshot } from "firebase/firestore"
 import { db } from "./config"
 import type { WarrantyItem } from "@/types"
 
 const COLLECTION_NAME = "warranty"
+
+// Contador atômico usado para gerar o numeroPedido sequencial.
+const COUNTER_COLLECTION = "counters"
+const COUNTER_DOC_ID = "warranty"
+// Primeiro número emitido. Fica acima do volume de registros antigos (~1005),
+// que não possuem numeroPedido e continuam exibindo "—".
+const NUMERO_PEDIDO_INICIAL = 1006
 const normalizeWhatsappValue = (value: unknown): string => {
   if (typeof value === "string" || typeof value === "number") {
     return String(value).replace(/\D+/g, "")
@@ -12,15 +19,47 @@ const normalizeWhatsappValue = (value: unknown): string => {
 
 const isPhoneSearch = (term: string): boolean => normalizeWhatsappValue(term).length >= 3
 
+// Detecta busca pelo Nº do pedido: "1006" ou "#1006".
+// Telefones normalizados têm 10-11 dígitos (com DDD), então o limite de 6 dígitos
+// mantém a busca por WhatsApp funcionando como antes.
+const parseNumeroPedidoSearch = (term: string): number | null => {
+  const cleaned = term.trim().replace(/^#/, "")
+  if (!/^\d{1,6}$/.test(cleaned)) return null
+  const numero = Number(cleaned)
+  return numero > 0 ? numero : null
+}
+
 // Adicionar uma nova garantia
+//
+// O numeroPedido é gerado dentro de uma transaction junto com a criação do
+// documento. Isso garante duas coisas:
+//  1. Dois cadastros simultâneos nunca recebem o mesmo número — se o contador
+//     mudar entre a leitura e a escrita, o Firestore re-executa a transaction.
+//  2. Se a criação falhar, o número não é consumido (sem buracos na sequência),
+//     porque contador e garantia são gravados na mesma operação atômica.
 export async function addWarrantyItem(item: Omit<WarrantyItem, "id">) {
   try {
-    const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...item,
-      whatsapp: normalizeWhatsappValue(item.whatsapp),
-      createdAt: new Date().toISOString(),
+    const counterRef = doc(db, COUNTER_COLLECTION, COUNTER_DOC_ID)
+    // Gera o ID do documento localmente (sem ida à rede) para poder criá-lo
+    // dentro da transaction.
+    const warrantyRef = doc(collection(db, COLLECTION_NAME))
+
+    await runTransaction(db, async (transaction) => {
+      const counterSnap = await transaction.get(counterRef)
+      const ultimoNumero = counterSnap.exists() ? Number(counterSnap.data()?.ultimoNumero) : Number.NaN
+      // Contador ainda não existe (primeira garantia) ou está com valor inválido.
+      const proximoNumero = Number.isFinite(ultimoNumero) ? ultimoNumero + 1 : NUMERO_PEDIDO_INICIAL
+
+      transaction.set(counterRef, { ultimoNumero: proximoNumero }, { merge: true })
+      transaction.set(warrantyRef, {
+        ...item,
+        whatsapp: normalizeWhatsappValue(item.whatsapp),
+        numeroPedido: proximoNumero,
+        createdAt: new Date().toISOString(),
+      })
     })
-    return docRef.id
+
+    return warrantyRef.id
   } catch (error) {
     console.error("Erro ao adicionar garantia:", error)
     throw error
@@ -192,6 +231,24 @@ export async function fetchWarrantyItemsPaginatedWithFilters({
 }): Promise<{ items: WarrantyItem[], lastDoc: QueryDocumentSnapshot | null }> {
   try {
     const col = collection(db, COLLECTION_NAME);
+
+    // Busca pelo Nº do pedido: é um identificador único, então faz uma consulta
+    // de igualdade direta e ignora os demais filtros (o pedido procurado é
+    // sempre exibido, mesmo que esteja em outra loja ou outro status).
+    // Sem orderBy/composite index — usa apenas o índice de campo único.
+    const numeroPedidoBuscado = parseNumeroPedidoSearch(searchTerm);
+    if (numeroPedidoBuscado !== null) {
+      const numeroQuery = query(col, where("numeroPedido", "==", numeroPedidoBuscado), fbLimit(limitValue));
+      const numeroSnapshot = await getDocs(numeroQuery);
+      const numeroItems = numeroSnapshot.docs.map(
+        (doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }) as WarrantyItem
+      );
+      return { items: numeroItems, lastDoc: null };
+    }
+
     const constraints: any[] = [];
     // Filtros
     if (loja && loja !== "todas") {

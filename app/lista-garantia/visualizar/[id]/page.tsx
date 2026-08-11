@@ -127,9 +127,25 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
             <CardHeader>
               {/* Stack title above buttons on small screens to avoid overflow */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                <CardTitle className="text-center text-2xl font-bold text-gray-800 dark:text-gray-100">
-                  Detalhes da Garantia
-                </CardTitle>
+                <div className="text-center md:text-left">
+                  <CardTitle className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    Detalhes da Garantia
+                  </CardTitle>
+                  {/* Garantias antigas não possuem numeroPedido: mostramos "—"
+                      com o ID interno logo abaixo, útil para o suporte. */}
+                  {item.numeroPedido ? (
+                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                      Pedido Nº {item.numeroPedido}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                      Pedido Nº —{" "}
+                      <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
+                        (registro anterior à numeração • ID {item.id})
+                      </span>
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex flex-wrap items-center gap-2 mt-3 md:mt-0">
                   {user && (user.permissions?.listaGarantia?.editar_basico || user.permissions?.listaGarantia?.editar) && !item.finalized && (

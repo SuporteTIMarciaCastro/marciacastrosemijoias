@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { getWarrantyStatusLabel } from "@/lib/warranty-status"
 
 interface StatusBadgeProps {
   status: string
@@ -37,7 +38,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
         getStatusColor(status)
       )}
     >
-      {status}
+      {getWarrantyStatusLabel(status)}
     </span>
   )
 } 

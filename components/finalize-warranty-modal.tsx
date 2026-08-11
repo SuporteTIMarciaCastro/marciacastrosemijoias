@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { updateWarrantyItem } from "@/lib/firebase/warranty"
+import { getWarrantyStatusLabel } from "@/lib/warranty-status"
 import type { WarrantyItem } from "@/types"
 
 interface FinalizeWarrantyModalProps {
@@ -31,6 +32,7 @@ interface FinalizeWarrantyModalProps {
   onSuccess: () => void
 }
 
+// Valores gravados no Firestore. O texto exibido vem de getWarrantyStatusLabel.
 const FINALIZATION_STATUSES = [
   "Devolvido cliente",
   "Extraviada-crédito cliente", 
@@ -184,7 +186,7 @@ export function FinalizeWarrantyModal({
 
           <div className="space-y-2">
             <Label>Status Atual</Label>
-            <Input value={warrantyItem.status} disabled />
+            <Input value={getWarrantyStatusLabel(warrantyItem.status)} disabled />
           </div>
 
           {!canFinalizeDirectly && (
@@ -197,7 +199,7 @@ export function FinalizeWarrantyModal({
                 <SelectContent>
                   {FINALIZATION_STATUSES.map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status}
+                      {getWarrantyStatusLabel(status)}
                     </SelectItem>
                   ))}
                 </SelectContent>

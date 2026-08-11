@@ -481,6 +481,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
   }
 
+  // Valores gravados no Firestore. O texto exibido vem do StatusBadge (getWarrantyStatusLabel).
   const statusOptions = ["Recebido loja", "Recebido comercial","Recebido fábrica", "Recebido no escritório", "Devolvido comercial","Devolvido loja", "Devolvido cliente","Extraviada-crédito cliente", "Negado"]
 
   return (

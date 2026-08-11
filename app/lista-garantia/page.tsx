@@ -13,6 +13,7 @@ import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
 import { StatusBadge } from "@/components/status-badge"
+import { getWarrantyStatusLabel } from "@/lib/warranty-status"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -427,6 +428,7 @@ export default function ListaGarantiaPage() {
     return value
   }
 
+  // Valores gravados no Firestore (usados no filtro). O texto exibido vem de getWarrantyStatusLabel.
   const statusOptions = [
     "Recebido loja",
     "Recebido comercial",
@@ -483,7 +485,7 @@ export default function ListaGarantiaPage() {
               <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div className="md:col-span-2 flex flex-col gap-2 sm:flex-row">
                   <Input
-                    placeholder="Pesquisar por nome ou WhatsApp (mín. 3 caracteres)"
+                    placeholder="Pesquisar por Nº do pedido, nome ou WhatsApp"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -534,7 +536,7 @@ export default function ListaGarantiaPage() {
                       <SelectItem value="todos">Todos os status</SelectItem>
                       {statusOptions.map((status) => (
                         <SelectItem key={status} value={status}>
-                          {status}
+                          {getWarrantyStatusLabel(status)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -560,11 +562,13 @@ export default function ListaGarantiaPage() {
               ) : filteredItems.length === 0 ? (
                 <div className="text-center py-4">Nenhuma garantia encontrada</div>
               ) : (
-                filteredItems.slice(0, pageSize).map((item, idx) => (
+                filteredItems.slice(0, pageSize).map((item) => (
                   <div key={item.id} className="border rounded-lg p-3 bg-white dark:bg-gray-800">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="text-xs text-gray-500">#{(currentPage - 1) * pageSize + idx + 1}</div>
+                        <div className="text-xs text-gray-500">
+                          {item.numeroPedido ? `Nº ${item.numeroPedido}` : "Nº —"}
+                        </div>
                         <div className="font-semibold text-sm">{(item.nome || "").toUpperCase()}</div>
                       </div>
                       <ActionsMenu
@@ -601,7 +605,7 @@ export default function ListaGarantiaPage() {
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="border-b">
-                    <th className="py-3 px-4 text-left">ID</th>
+                    <th className="py-3 px-4 text-left">Nº Pedido</th>
                     <th className="py-3 px-4 text-left">Finalizada</th>
                     <th className="py-3 px-4 text-left">Nome</th>
                     <th className="py-3 px-4 text-left">Celular</th>
@@ -625,9 +629,10 @@ export default function ListaGarantiaPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredItems.slice(0, pageSize).map((item, idx) => (
+                    filteredItems.slice(0, pageSize).map((item) => (
                       <tr key={item.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="py-3 px-4">{(currentPage - 1) * pageSize + idx + 1}</td>
+                        {/* Garantias antigas não possuem numeroPedido e exibem "—" */}
+                        <td className="py-3 px-4">{item.numeroPedido ?? "—"}</td>
                         <td className="py-3 px-4">
                           {item.finalized ? (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
