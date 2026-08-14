@@ -1,6 +1,7 @@
 'use client';
 
 import Header from "@/components/header";
+import { fetchAutenticado } from "@/lib/api-client"
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
@@ -20,6 +21,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { UserPermissions } from '@/types/permissions';
+import { PRESETS_PAPEL } from '@/lib/permissoes-revenda';
 
 // Define um tipo mais robusto para o usuário, evitando o uso excessivo de `any`
 type UserData = {
@@ -40,10 +42,12 @@ export default function UsuariosPage() {
   const initialPermsState: UserPermissions = {
     listaDesejos: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false },
     listaGarantia: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false, finalizar: false },
+    listaRetiradas: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, remover: false },
     listaMateriais: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false },
     pagamentos: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, editar_basico: false, remover: false },
     listaUsuarios: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, remover: false },
     estatisticasAtendimento: { visualizarPage: false },
+    gerenciadorRevendas: { visualizarPage: false, visualizar: false, adicionar: false, editar: false, remover: false, lancarPagamento: false, verRelatorios: false, gerenciarVendedores: false, enviarDocumentos: false, apenasProprias: false, autorizarExcecao: false },
   };
 
   const [form, setForm] = useState(initialFormState);
@@ -93,7 +97,7 @@ export default function UsuariosPage() {
   const handleUpdateUser = async () => {
     if (!isEdit.uid) return;
     try {
-      const res = await fetch(`/api/users/update/${isEdit.uid}`, {
+      const res = await fetchAutenticado(`/api/users/update/${isEdit.uid}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,7 +117,7 @@ export default function UsuariosPage() {
 
   const handleCreateUser = async () => {
     try {
-      const res = await fetch('/api/users/create', {
+      const res = await fetchAutenticado('/api/users/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -134,7 +138,7 @@ export default function UsuariosPage() {
   const handleDeleteUser = async (uid: string) => {
     if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
     try {
-      const res = await fetch(`/api/users/delete/${uid}`, { method: 'DELETE' });
+      const res = await fetchAutenticado(`/api/users/delete/${uid}`, { method: 'DELETE' });
       await handleApiResponse(res);
     } catch (e) {
       console.error('Erro ao excluir usuário', e);
@@ -175,6 +179,13 @@ export default function UsuariosPage() {
       { key: 'remover', label: 'Remover item' },
       { key: 'finalizar', label: 'Finalizar item' },
     ]},
+    { key: 'listaRetiradas', label: 'Lista de Retiradas', fields: [
+      { key: 'visualizarPage', label: 'Visualizar página' },
+      { key: 'visualizar', label: 'Visualizar item' },
+      { key: 'adicionar', label: 'Adicionar item' },
+      { key: 'editar', label: 'Editar item' },
+      { key: 'remover', label: 'Remover item' },
+    ]},
     { key: 'listaMateriais', label: 'Lista de Materiais', fields: [
       { key: 'visualizarPage', label: 'Visualizar página' },
       { key: 'visualizar', label: 'Visualizar item' },
@@ -201,7 +212,28 @@ export default function UsuariosPage() {
     { key: 'estatisticasAtendimento', label: 'Estatísticas de Atendimento', fields: [
         { key: 'visualizarPage', label: 'Visualizar Página' },
     ]},
+    { key: 'gerenciadorRevendas', label: 'Gerenciador de Revendas', presets: PRESETS_PAPEL, fields: [
+      { key: 'visualizarPage', label: 'Visualizar página' },
+      { key: 'visualizar', label: 'Visualizar item' },
+      { key: 'adicionar', label: 'Adicionar item' },
+      { key: 'editar', label: 'Editar item' },
+      { key: 'remover', label: 'Remover item' },
+      { key: 'lancarPagamento', label: 'Lançar prestação e pagamento' },
+      { key: 'verRelatorios', label: 'Ver relatórios' },
+      { key: 'gerenciarVendedores', label: 'Gerenciar vendedores' },
+      { key: 'enviarDocumentos', label: 'Enviar documentos' },
+      { key: 'apenasProprias', label: 'Somente as próprias revendedoras' },
+      { key: 'autorizarExcecao', label: 'Autorizar entrega com pendência' },
+    ]},
   ]), []);
+
+  // Aplica um preset de papel: substitui apenas as caixas daquela seção.
+  const aplicarPreset = (sectionKey: keyof UserPermissions, preset: Record<string, boolean>) => {
+    setPerms(prev => ({
+      ...prev,
+      [sectionKey]: { ...prev[sectionKey], ...preset },
+    }));
+  };
 
   const togglePerm = (sectionKey: keyof UserPermissions, field: string, value: boolean) => {
     setPerms(prev => ({
@@ -253,7 +285,27 @@ export default function UsuariosPage() {
               <h3 className="text-lg font-semibold">Permissões</h3>
               {sections.map(section => (
                 <div key={section.key} className="border rounded-md p-4">
-                  <div className="font-semibold mb-3 text-base">{section.label}</div>
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div className="font-semibold text-base">{section.label}</div>
+                    {/* Presets marcam o conjunto de caixas de uma vez; depois dá
+                        para ajustar caixa por caixa normalmente. */}
+                    {'presets' in section && section.presets && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs text-gray-500">Aplicar papel:</span>
+                        {Object.keys(section.presets).map((papel) => (
+                          <Button
+                            key={papel}
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => aplicarPreset(section.key as keyof UserPermissions, (section as any).presets[papel])}
+                          >
+                            {papel}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {section.fields.map(field => (
                       <div key={field.key} className="flex items-center gap-2">

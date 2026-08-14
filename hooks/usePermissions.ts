@@ -23,10 +23,12 @@ export function usePermissions() {
           setPermissions({
             listaDesejos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
             listaGarantia: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true, finalizar: true },
+            listaRetiradas: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
             listaMateriais: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
             pagamentos: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, editar_basico: true, remover: true },
             listaUsuarios: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true },
             estatisticasAtendimento: { visualizarPage: true },
+            gerenciadorRevendas: { visualizarPage: true, visualizar: true, adicionar: true, editar: true, remover: true, lancarPagamento: true, verRelatorios: true, gerenciarVendedores: true, enviarDocumentos: true, apenasProprias: false, autorizarExcecao: true },
           });
           setLoading(false);
           return;

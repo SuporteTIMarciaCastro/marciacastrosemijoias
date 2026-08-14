@@ -10,7 +10,7 @@ import { useAuth } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 
-type PageType = "listaDesejos" | "listaGarantia" | "listaMateriais" | "pagamentos"
+type PageType = "listaDesejos" | "listaGarantia" | "listaMateriais" | "pagamentos" | "gerenciadorRevendas"
 
 interface ActionsMenuProps {
   onView?: () => void
