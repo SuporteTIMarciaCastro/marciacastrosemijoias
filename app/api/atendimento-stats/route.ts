@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 const API_BASE =
   "https://automacoes-sales-couching.cvibkg.easypanel.host/api/v1/metrics/vendedoras"
 
 export async function GET(request: NextRequest) {
+  const usuarioAutenticado = await verificarToken(request)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   const { searchParams } = new URL(request.url)
   const dateFrom = searchParams.get("date_from")
   const dateTo = searchParams.get("date_to")

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { collection, doc, getDocs, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase/config"
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 const COLLECTION_NAME = "warranty"
 const BATCH_WRITE_LIMIT = 500
@@ -12,7 +13,11 @@ const normalizeWhatsApp = (value: unknown) => {
   return null
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const usuarioAutenticado = await verificarToken(req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     const snapshot = await getDocs(collection(db, COLLECTION_NAME))
     const documents = snapshot.docs

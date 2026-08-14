@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 export async function POST(req: Request) {
+  const usuarioAutenticado = await verificarToken(req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     const body = await req.json()
     const { name, email, password, isAdmin, permissions } = body as {

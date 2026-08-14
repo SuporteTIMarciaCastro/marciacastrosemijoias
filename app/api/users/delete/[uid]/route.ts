@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 export async function DELETE(
   _req: Request,
   { params }: { params: { uid: string } }
 ) {
+  const usuarioAutenticado = await verificarToken(_req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   const uid = params.uid
   try {
     // Tenta remover do Authentication primeiro

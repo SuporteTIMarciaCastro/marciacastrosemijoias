@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { adminAuth, adminDb } from '@/lib/firebase/admin'
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 export async function PATCH(
   req: Request,
   { params }: { params: { uid: string } }
 ) {
+  const usuarioAutenticado = await verificarToken(req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     const uid = params.uid
     const body = await req.json()

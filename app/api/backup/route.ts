@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 //  essa rota retorna todo o banco de dados
-export async function GET() {
+export async function GET(req: Request) {
+  const usuarioAutenticado = await verificarToken(req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     // Backup da lista de desejos
     const wishlistRef = collection(db, "wishlist");

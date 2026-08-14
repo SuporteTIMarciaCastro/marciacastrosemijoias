@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { fetchAutenticado } from "@/lib/api-client"
 
 import { useState } from "react"
 import Image from "next/image"
@@ -72,7 +73,7 @@ export default function FormularioDesejoPage() {
     setIsUploadingImage(true)
     setProcessingMessage("Enviando sua solicitação...")
     try {
-      const response = await fetch("/api/upload", {
+      const response = await fetchAutenticado("/api/upload", {
         method: "POST",
         body: formData,
       })

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { fetchAutenticado } from "@/lib/api-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -53,7 +54,7 @@ export function FinalizeWarrantyModal({
 
   const triggerWarrantyWebhook = async (payload: Record<string, unknown>) => {
     try {
-      const response = await fetch("/api/warranty-webhook", {
+      const response = await fetchAutenticado("/api/warranty-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

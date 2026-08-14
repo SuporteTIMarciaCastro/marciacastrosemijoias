@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 import { google } from "googleapis"
 import { createReadStream } from "fs"
 import { writeFile } from "fs/promises"
@@ -19,9 +20,17 @@ const drive = google.drive({ version: "v3", auth: oauth2Client })
 
 export async function POST(request: NextRequest) {
   try {
+    // Só usuário autenticado envia arquivo.
+    const usuario = await verificarToken(request)
+    if (!usuario) return naoAutorizado()
+
     const formData = await request.formData()
     const file = formData.get("file") as File
     const folderId = formData.get("folderId") as string
+    // Padrão continua público, para não alterar o comportamento de garantia,
+    // pagamentos e lista de desejos. Só quem envia "false" (documentos pessoais
+    // de revendedora) mantém o arquivo restrito à permissão da pasta.
+    const tornarPublico = formData.get("publico") !== "false"
 
     if (!file) {
       return NextResponse.json({ error: "Nenhum arquivo foi enviado" }, { status: 400 })
@@ -52,14 +61,16 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Tornar o arquivo público
-    await drive.permissions.create({
-      fileId: response.data.id!,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    })
+    // Tornar o arquivo público (quando solicitado)
+    if (tornarPublico) {
+      await drive.permissions.create({
+        fileId: response.data.id!,
+        requestBody: {
+          role: 'reader',
+          type: 'anyone',
+        },
+      })
+    }
 
     // Obter o link público do arquivo
     const fileDetails = await drive.files.get({

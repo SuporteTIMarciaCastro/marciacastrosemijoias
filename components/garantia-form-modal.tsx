@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { fetchAutenticado } from "@/lib/api-client"
 
 import { useState, useEffect } from "react"
 import imageCompression from "browser-image-compression"
@@ -329,7 +330,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
 
   const triggerWarrantyWebhook = async (payload: Record<string, unknown>) => {
     try {
-      const response = await fetch("/api/warranty-webhook", {
+      const response = await fetchAutenticado("/api/warranty-webhook", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -351,7 +352,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     formData.append("file", file)
     formData.append("folderId", "1-NZHEq0_4bKpL99KN2K-u5eQTxJ7BXfn")
 
-    const response = await fetch("/api/upload", {
+    const response = await fetchAutenticado("/api/upload", {
       method: "POST",
       body: formData,
     })
@@ -437,7 +438,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
         // Enviar email para o cliente apenas quando for uma nova garantia
         if (formData.email) {
           try {
-            const response = await fetch('/api/send-email', {
+            const response = await fetchAutenticado('/api/send-email', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',

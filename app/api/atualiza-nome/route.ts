@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { collection, getDocs, updateDoc, doc, deleteField } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
-export async function POST() {
+export async function POST(req: Request) {
+  const usuarioAutenticado = await verificarToken(req)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     const colRef = collection(db, "warranty");
     const snapshot = await getDocs(colRef);

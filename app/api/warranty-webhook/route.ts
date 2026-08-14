@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
+import { verificarToken, naoAutorizado } from "@/lib/firebase/verificar-token"
 
 export async function POST(request: Request) {
+  const usuarioAutenticado = await verificarToken(request)
+  if (!usuarioAutenticado) return naoAutorizado()
+
+
   try {
     const webhookUrl = process.env.WEBHOOK_WARRANTY_URL
 

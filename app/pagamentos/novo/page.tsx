@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { fetchAutenticado } from "@/lib/api-client"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -77,7 +78,7 @@ export default function NovoPagamentoPage() {
     formData.append("file", file)
     formData.append("folderId", "1i55quYEmytJU_AhBs3b2AnZVAo3YAnlT") // ID da pasta de pagamentos
 
-    const response = await fetch("/api/upload", {
+    const response = await fetchAutenticado("/api/upload", {
       method: "POST",
       body: formData,
     })
