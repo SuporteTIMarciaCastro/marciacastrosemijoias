@@ -4,62 +4,109 @@
 
 @layer base {
   :root {
-    /* Tema claro — marfim quente e vinho sofisticado */
-    --background: 36 33% 97%;
-    --foreground: 20 14% 13%;
-    --card: 40 40% 99%;
-    --card-foreground: 20 14% 13%;
-    --popover: 40 40% 99%;
-    --popover-foreground: 20 14% 13%;
-    --primary: 344 62% 40%;
-    --primary-foreground: 36 40% 98%;
-    --secondary: 36 22% 92%;
-    --secondary-foreground: 20 14% 16%;
-    --muted: 36 20% 93%;
-    --muted-foreground: 25 8% 42%;
-    --accent: 346 38% 94%;
-    --accent-foreground: 344 55% 32%;
-    --destructive: 0 72% 48%;
-    --destructive-foreground: 36 40% 98%;
-    --border: 34 20% 88%;
-    --input: 34 20% 88%;
-    --ring: 344 62% 40%;
-    --radius: 0.625rem;
+    /* ------------------------------------------------------------------
+       Tema claro — branco, cinza neutro e vermelho da marca.
+       Os cinzas são praticamente neutros (saturação 0-4%) para não
+       competir com o vermelho: é ele quem carrega toda a cor do sistema.
+       ------------------------------------------------------------------ */
 
-    --chart-1: 344 62% 45%;
-    --chart-2: 20 60% 50%;
-    --chart-3: 40 55% 55%;
-    --chart-4: 160 40% 45%;
-    --chart-5: 260 40% 55%;
+    /* Fundo da aplicação levemente abaixo do branco, para os cards
+       (brancos) ganharem separação sem depender só de sombra. */
+    --background: 0 0% 97.5%;
+    --foreground: 0 0% 9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    /* Vermelho da marca. Único ponto de cor forte do sistema. */
+    --primary: 353 78% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 94.5%;
+    --secondary-foreground: 0 0% 14%;
+
+    --muted: 0 0% 95.5%;
+    --muted-foreground: 0 0% 42%;
+
+    /* Fundo suave do vermelho, para item ativo e realces discretos. */
+    --accent: 353 60% 96.5%;
+    --accent-foreground: 353 72% 36%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 88%;
+    --ring: 353 78% 44%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar — quase preta no tema claro, para virar a âncora visual. */
+    --sidebar-background: 0 0% 10%;
+    --sidebar-foreground: 0 0% 78%;
+    --sidebar-primary: 353 78% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 16%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 353 78% 50%;
+
+    --chart-1: 353 78% 48%;
+    --chart-2: 0 0% 32%;
+    --chart-3: 0 0% 58%;
+    --chart-4: 353 40% 70%;
+    --chart-5: 0 0% 78%;
   }
 
   .dark {
-    /* Tema escuro — bordô quente inspirado no acervo interno */
-    --background: 345 24% 8%;
-    --foreground: 36 30% 92%;
-    --card: 345 22% 11%;
-    --card-foreground: 36 30% 92%;
-    --popover: 345 22% 11%;
-    --popover-foreground: 36 30% 92%;
-    --primary: 346 60% 54%;
-    --primary-foreground: 36 40% 97%;
-    --secondary: 345 16% 17%;
-    --secondary-foreground: 36 30% 92%;
-    --muted: 345 15% 16%;
-    --muted-foreground: 36 12% 65%;
-    --accent: 345 18% 20%;
-    --accent-foreground: 36 30% 92%;
-    --destructive: 0 60% 45%;
-    --destructive-foreground: 36 40% 97%;
-    --border: 345 16% 21%;
-    --input: 345 16% 21%;
-    --ring: 346 60% 54%;
+    /* ------------------------------------------------------------------
+       Tema escuro — preto real, cinzas frios neutros e o mesmo vermelho,
+       clareado para manter contraste sobre fundo escuro.
+       ------------------------------------------------------------------ */
+    --background: 0 0% 6.5%;
+    --foreground: 0 0% 96%;
 
-    --chart-1: 346 60% 58%;
-    --chart-2: 20 55% 58%;
-    --chart-3: 40 50% 60%;
-    --chart-4: 160 35% 50%;
-    --chart-5: 260 40% 62%;
+    --card: 0 0% 9.5%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 96%;
+
+    --primary: 353 74% 54%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 94%;
+
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 62%;
+
+    --accent: 353 40% 17%;
+    --accent-foreground: 353 70% 82%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 22%;
+    --ring: 353 74% 54%;
+
+    /* No escuro a sidebar sobe um degrau, em vez de descer. */
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 74%;
+    --sidebar-primary: 353 74% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 16%;
+    --sidebar-ring: 353 74% 56%;
+
+    --chart-1: 353 74% 58%;
+    --chart-2: 0 0% 72%;
+    --chart-3: 0 0% 48%;
+    --chart-4: 353 45% 68%;
+    --chart-5: 0 0% 34%;
   }
 }
 
@@ -67,6 +114,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
@@ -75,29 +123,62 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Títulos com serifada elegante */
-  h1, h2, h3 {
-    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
-    letter-spacing: -0.01em;
+  /* Tipografia unificada: uma família só (Inter) para tudo. A hierarquia vem
+     de tamanho, peso e espaçamento entre letras — não de troca de fonte. */
+  h1, h2, h3, h4 {
+    font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.021em;
+    text-wrap: balance;
   }
 
-  /* Seleção de texto na cor da marca */
+  /* Títulos grandes pedem tracking mais fechado para não parecerem soltos. */
+  h1 { letter-spacing: -0.028em; }
+
+  /* Números em colunas alinham; sem isso, tabelas de valores dançam. */
+  table, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
   ::selection {
-    background-color: hsl(var(--primary) / 0.18);
+    background-color: hsl(var(--primary) / 0.16);
     color: hsl(var(--foreground));
+  }
+
+  /* Foco visível e consistente em tudo que recebe teclado. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
+  /* Mantido para compatibilidade: agora é a mesma família, com peso de título. */
   .font-display {
-    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.021em;
+  }
+
+  /* Rótulo de seção: maiúsculas pequenas com respiro entre letras. */
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Divisor sutil, mais leve que uma border cheia. */
+  .hairline {
+    border-color: hsl(var(--border) / 0.7);
   }
 }
 
-/* Barra de rolagem sutil e alinhada à paleta */
+/* Barra de rolagem discreta, alinhada ao cinza neutro. */
 * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  scrollbar-color: hsl(0 0% 60% / 0.4) transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
@@ -107,12 +188,30 @@
   background: transparent;
 }
 *::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.28);
+  background-color: hsl(0 0% 55% / 0.32);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.45);
+  background-color: hsl(0 0% 45% / 0.5);
   background-clip: content-box;
+}
+
+/* A sidebar é fixa; o corpo reserva a faixa dela. O atributo é ligado pelo
+   componente Header, então páginas sem menu (login) não deslocam nada e
+   nenhuma página precisou ser alterada. */
+@media (min-width: 768px) {
+  body[data-sidebar="on"] {
+    padding-left: 16rem;
+  }
+}
+
+/* Impressão: o menu e os controles não vão para o papel. */
+@media print {
+  body,
+  body[data-sidebar="on"] {
+    background: #fff;
+    padding-left: 0;
+  }
 }

@@ -12,11 +12,14 @@ const config: Config = {
   	extend: {
   		fontFamily: {
   			sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
-  			serif: ['var(--font-serif)', 'Georgia', 'Times New Roman', 'serif'],
+  			/* Sem serifada carregada: o sistema usa uma família só (Inter). */
+  			serif: ['Georgia', 'Times New Roman', 'serif'],
   		},
   		boxShadow: {
-  			soft: '0 1px 2px rgba(20, 14, 13, 0.04), 0 4px 16px -4px rgba(20, 14, 13, 0.08)',
-  			elevated: '0 8px 32px -8px rgba(20, 14, 13, 0.14)',
+  			/* Sombras neutras e curtas — elevação percebida sem "nuvem" cinza */
+  			soft: '0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.06)',
+  			elevated: '0 2px 4px rgba(0, 0, 0, 0.04), 0 12px 32px -12px rgba(0, 0, 0, 0.16)',
+  			focus: '0 0 0 3px hsl(var(--ring) / 0.18)',
   		},
   		colors: {
   			background: 'hsl(var(--background))',

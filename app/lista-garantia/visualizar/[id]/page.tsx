@@ -56,7 +56,7 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen flex-col bg-secondary/40">
         <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
           <div className="max-w-4xl mx-auto">
             <Image
@@ -83,7 +83,7 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
 
   if (!item) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen flex-col bg-secondary/40">
         <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
           <div className="max-w-4xl mx-auto">
             <Image
@@ -109,7 +109,7 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen flex-col bg-secondary/40">
       <div className="w-full bg-white py-4 px-6 shadow-sm dark:bg-gray-900">
         <div className="max-w-4xl mx-auto">
           <Image
@@ -123,7 +123,7 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
       </div>
       <main className="flex-1 p-4 md:p-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-lg">
+          <Card className="bg-card border border-gray-200 dark:border-gray-600 shadow-lg">
             <CardHeader>
               {/* Stack title above buttons on small screens to avoid overflow */}
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -134,11 +134,11 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                   {/* Garantias antigas não possuem numeroPedido: mostramos "—"
                       com o ID interno logo abaixo, útil para o suporte. */}
                   {item.numeroPedido ? (
-                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="mt-1 text-sm font-medium text-muted-foreground">
                       Pedido Nº {item.numeroPedido}
                     </p>
                   ) : (
-                    <p className="mt-1 text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="mt-1 text-sm font-medium text-muted-foreground">
                       Pedido Nº —{" "}
                       <span className="text-xs font-normal text-gray-400 dark:text-gray-500">
                         (registro anterior à numeração • ID {item.id})
@@ -193,14 +193,14 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                 {/* Status e Datas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
                       <span>Data da Compra</span>
                     </div>
                     <p className="font-medium dark:text-gray-100">{item.dataCompra}</p>
                   </div>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar className="h-4 w-4" />
                       <span>Entrada da Solicitação</span>
                     </div>
@@ -209,13 +209,13 @@ export default function VisualizarGarantiaPage({ params }: { params: Promise<{ i
                 </div>
 
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">Status:</span>
+                  <span className="text-sm text-muted-foreground">Status:</span>
                   {item.finalized ? (
                     <>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                         Finalizado
                       </span>
-                      <span className="mx-1 font-bold text-gray-500 dark:text-gray-400">{'->'}</span>
+                      <span className="mx-1 font-bold text-muted-foreground">{'->'}</span>
                       <StatusBadge status={item.status} />
                     </>
                   ) : (

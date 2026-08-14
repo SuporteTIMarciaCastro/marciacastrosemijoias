@@ -5,7 +5,6 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -97,70 +96,157 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-[#2a1116] via-[#1c0c10] to-[#140a0c] px-4 py-12 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md border-white/10 bg-[#241318]/95 text-white shadow-elevated backdrop-blur">
-        <CardHeader className="space-y-2 text-center">
-          <div className="flex justify-center mb-4">
-            <Image src="/logo-branca.png" alt="Marcia Castro Semijoias" width={220} height={93} priority className="h-auto w-[200px] object-contain" />
-          </div>
-          <div className="mx-auto h-px w-12 bg-white/20" />
-          <CardTitle className="font-serif text-2xl font-semibold text-white">Comercial · Login</CardTitle>
-          <CardDescription className="text-gray-300">Entre com suas credenciais para acessar o sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen lg:grid lg:grid-cols-[1.05fr_1fr]">
+      {/* ---------- Painel da marca ---------- */}
+      <aside className="relative hidden overflow-hidden bg-sidebar px-14 py-16 lg:flex lg:flex-col lg:justify-between">
+        {/* A própria logo, ampliada e quase invisível, sangrando pelo canto:
+            textura de marca sem precisar de imagem decorativa. */}
+        <Image
+          src="/logo-branca.png"
+          alt=""
+          aria-hidden="true"
+          width={1200}
+          height={508}
+          className="pointer-events-none absolute -bottom-24 -right-40 w-[46rem] max-w-none opacity-[0.045]"
+        />
+        {/* Brilho da marca, contido e discreto */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -left-32 top-1/3 h-[34rem] w-[34rem] rounded-full opacity-20 blur-3xl"
+          style={{ background: "radial-gradient(circle, hsl(var(--primary)) 0%, transparent 68%)" }}
+        />
+
+        <Image
+          src="/logo-branca.png"
+          alt="Marcia Castro Semijoias"
+          width={260}
+          height={110}
+          priority
+          className="relative h-11 w-auto object-contain"
+        />
+
+        <div className="relative max-w-md">
+          {/* Fio vermelho: o único traço de cor deste lado */}
+          <div className="mb-7 h-px w-14 bg-sidebar-primary" />
+          <h2 className="text-[2.5rem] font-semibold leading-[1.15] tracking-[-0.032em] text-white">
+            Garantias, desejos e revendas em um só lugar.
+          </h2>
+          <p className="mt-5 text-[0.9375rem] leading-relaxed text-white/50">
+            O sistema comercial da Márcia Castro Semijoias — cadastros, ciclos de consignação,
+            prestação de contas e documentação, do primeiro contato ao acerto final.
+          </p>
+        </div>
+
+        <p className="relative text-xs tracking-wide text-white/35">
+          Acesso restrito a colaboradores autorizados
+        </p>
+      </aside>
+
+      {/* ---------- Formulário ---------- */}
+      <main className="flex min-h-screen flex-col justify-center bg-background px-6 py-12 sm:px-10 lg:min-h-0 lg:px-16">
+        {/* Marca no topo apenas quando o painel está oculto */}
+        <div className="mb-10 lg:hidden">
+          <Image
+            src="/logo-preto.png"
+            alt="Marcia Castro Semijoias"
+            width={220}
+            height={93}
+            priority
+            className="h-10 w-auto object-contain dark:invert"
+          />
+        </div>
+
+        <div className="w-full max-w-[23rem]">
+          <p className="eyebrow mb-2.5">Acesso ao sistema</p>
+          <h1 className="text-[2rem] font-semibold leading-none tracking-[-0.03em]">
+            Entrar
+          </h1>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Use as credenciais fornecidas pela administração.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-9 space-y-5">
             <div className="space-y-2">
+              <label htmlFor="email" className="block text-[0.8125rem] font-medium text-foreground/80">
+                Email
+              </label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Email"
+                placeholder="voce@marciacastrosemijoias.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-[#180d10] text-white border-white/15 placeholder-gray-400"
+                autoComplete="email"
+                className="h-11"
               />
             </div>
+
             <div className="space-y-2">
+              <label htmlFor="password" className="block text-[0.8125rem] font-medium text-foreground/80">
+                Senha
+              </label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Senha"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-[#180d10] text-white border-white/15 placeholder-gray-400 pr-10"
+                  autoComplete="current-password"
+                  className="h-11 pr-11"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-white focus:outline-none"
+                  className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-3.5 text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:text-foreground"
                   tabIndex={-1}
                   aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                 </button>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <Checkbox id="remember15" checked={remember15} onCheckedChange={(v) => setRemember15(!!v)} />
-                <label htmlFor="remember15" className="text-sm text-gray-300">Lembrar por 15 dias</label>
-              </div>
-              {errorMessage && (
-                <p role="alert" aria-live="polite" className="text-red-400 text-sm mt-1">
-                  {errorMessage}
-                </p>
-              )}
             </div>
+
+            <div className="flex items-center gap-2.5">
+              <Checkbox
+                id="remember15"
+                checked={remember15}
+                onCheckedChange={(v) => setRemember15(!!v)}
+              />
+              <label
+                htmlFor="remember15"
+                className="cursor-pointer select-none text-sm text-muted-foreground"
+              >
+                Lembrar por 15 dias
+              </label>
+            </div>
+
+            {errorMessage && (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="rounded-md border border-destructive/30 bg-destructive/10 px-3.5 py-2.5 text-sm text-destructive"
+              >
+                {errorMessage}
+              </p>
+            )}
+
             <Button
               type="submit"
-              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium tracking-wide"
+              className="h-12 w-full text-[0.9375rem] tracking-wide"
               disabled={isLoading || loading}
             >
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
+
+          <p className="mt-10 text-xs text-muted-foreground/60">
+            Márcia Castro Semijoias · Sistema interno
+          </p>
+        </div>
+      </main>
     </div>
   )
 }

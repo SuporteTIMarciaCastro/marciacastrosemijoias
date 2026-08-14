@@ -9,7 +9,9 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border bg-card text-card-foreground shadow-soft",
+      // Borda discreta + sombra curta: a separação vem do contraste com o
+      // fundo cinza da aplicação, não de sombra pesada.
+      "rounded-xl border border-border/80 bg-card text-card-foreground shadow-soft",
       className
     )}
     {...props}
@@ -36,7 +38,7 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "font-serif text-2xl font-semibold leading-none tracking-tight",
+      "text-lg font-semibold leading-tight tracking-[-0.02em]",
       className
     )}
     {...props}
