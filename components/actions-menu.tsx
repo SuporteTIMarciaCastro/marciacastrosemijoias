@@ -46,24 +46,33 @@ export function ActionsMenu({
 
 
 
+  // O menu do Radix desmonta ao selecionar um item e devolve o foco. Se a
+  // navegação acontecer dentro desse ciclo, o push é engolido e nada ocorre —
+  // era o motivo de "Visualizar" não abrir a ficha. Adiar um tick tira a
+  // navegação do meio do desmonte.
+  const adiar = (acao: () => void) => setTimeout(acao, 0)
+
   const handleView = () => {
     if (onView) {
-      onView()
+      adiar(onView)
     } else if (viewPath && itemId) {
-      router.push(`${viewPath}/${itemId}`)
+      adiar(() => router.push(`${viewPath}/${itemId}`))
     }
   }
 
   const handleEdit = () => {
     if (onEdit) {
-      onEdit()
+      adiar(onEdit)
     } else if (editPath && itemId) {
-      router.push(`${editPath}/${itemId}`)
+      adiar(() => router.push(`${editPath}/${itemId}`))
     }
   }
 
-  // Verifica as permissões específicas da página
-  const canView = user?.permissions?.[pageType]?.visualizar
+  // Verifica as permissões específicas da página.
+  // "Visualizar" também exige um destino: sem onView e sem viewPath o item
+  // aparecia no menu e não fazia nada ao ser clicado.
+  const temDestinoView = Boolean(onView || (viewPath && itemId))
+  const canView = Boolean(user?.permissions?.[pageType]?.visualizar) && temDestinoView
   const canEdit = (
     ((pageType === "listaMateriais" || pageType === "listaGarantia" || pageType === "pagamentos") && (user?.permissions?.[pageType]?.editar_basico || user?.permissions?.[pageType]?.editar))
     || ((pageType !== "listaMateriais" && pageType !== "listaGarantia" && pageType !== "pagamentos") && user?.permissions?.[pageType]?.editar)

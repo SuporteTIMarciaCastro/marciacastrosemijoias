@@ -156,7 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   if (loading) {
-    return <div>Carregando...</div>
+    // suppressHydrationWarning porque extensões de navegador (Bitdefender,
+    // por exemplo) injetam atributos como bis_skin_checked neste elemento
+    // antes do React hidratar. Sem isso, a árvore inteira é descartada e a
+    // página fica sem os manipuladores de clique.
+    return (
+      <div suppressHydrationWarning className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Carregando...
+      </div>
+    )
   }
 
   return (

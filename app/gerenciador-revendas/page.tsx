@@ -668,6 +668,9 @@ export default function GerenciadorRevendasPage() {
                               <ActionsMenu
                                 pageType="gerenciadorRevendas"
                                 itemId={item.id}
+                                onView={() =>
+                                  router.push(`/gerenciador-revendas/revendedora/${item.id}`)
+                                }
                                 onEdit={() => {
                                   setRevendedoraSelecionada(item.id)
                                   setModalRevendedora(true)

@@ -418,13 +418,15 @@ export async function renegociarCiclo(
 
 export async function fetchCiclosByRevendedora(revendedoraId: string): Promise<Ciclo[]> {
   try {
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where("revendedoraId", "==", revendedoraId),
-      orderBy("numeroCiclo", "desc")
-    )
+    // Só a igualdade na consulta, sem orderBy: combinar where e orderBy em
+    // campos diferentes exigiria índice composto criado no console. Como o
+    // número de ciclos por revendedora é pequeno, ordenar em memória resolve —
+    // mesma decisão tomada em documentos-revendedora e auditoria.
+    const q = query(collection(db, COLLECTION_NAME), where("revendedoraId", "==", revendedoraId))
     const snapshot = await getDocs(q)
-    return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Ciclo)
+    return snapshot.docs
+      .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }) as Ciclo)
+      .sort((a, b) => (b.numeroCiclo ?? 0) - (a.numeroCiclo ?? 0))
   } catch (error) {
     console.error("Erro ao buscar ciclos da revendedora:", error)
     logarLinkDeIndice(error)

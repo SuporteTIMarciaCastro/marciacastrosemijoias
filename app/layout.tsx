@@ -4,7 +4,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/context/auth-context"
-import { Toaster } from "sonner"
+import { Toaster as SonnerToaster } from "sonner"
+import { Toaster } from "@/components/ui/toaster"
 import Script from "next/script"
 
 // Fonte única do sistema. A hierarquia vem de tamanho, peso e tracking —
@@ -35,7 +36,12 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light">
           <AuthProvider>
             {children}
+            {/* Dois sistemas de aviso convivem no projeto: Pagamentos usa o
+                sonner, e o restante usa o useToast do shadcn. Só o sonner
+                estava montado, então TODA mensagem do shadcn — inclusive erro
+                de validação — era disparada e nunca aparecia na tela. */}
             <Toaster />
+            <SonnerToaster />
           </AuthProvider>
         </ThemeProvider>
         {/* Google Analytics */}

@@ -9,7 +9,9 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// Tempo até o aviso já fechado sair da memória. O valor original era
+// 1.000.000 ms — dezesseis minutos — que vem como padrão do shadcn.
+const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = ToastProps & {
   id: string
