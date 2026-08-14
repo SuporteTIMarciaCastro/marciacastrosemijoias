@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, startAt as fbStartAt, endAt as fbEndAt, where, runTransaction, QueryDocumentSnapshot } from "firebase/firestore"
+import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, orderBy, limit as fbLimit, startAfter as fbStartAfter, startAt as fbStartAt, endAt as fbEndAt, where, runTransaction, getCountFromServer, QueryDocumentSnapshot } from "firebase/firestore"
 import { db } from "./config"
 import type { WarrantyItem } from "@/types"
 
@@ -62,6 +62,23 @@ export async function addWarrantyItem(item: Omit<WarrantyItem, "id">) {
     return warrantyRef.id
   } catch (error) {
     console.error("Erro ao adicionar garantia:", error)
+    throw error
+  }
+}
+
+/**
+ * Total de garantias, só para calcular o número de páginas.
+ *
+ * Usa getCountFromServer: devolve apenas o número, sem baixar documento algum.
+ * Antes a tela chamava fetchWarrantyItems() para isso, o que trazia os mais de
+ * mil registros inteiros só para ler o `.length`.
+ */
+export async function countWarrantyItems(): Promise<number> {
+  try {
+    const snapshot = await getCountFromServer(collection(db, COLLECTION_NAME))
+    return snapshot.data().count
+  } catch (error) {
+    console.error("Erro ao contar garantias:", error)
     throw error
   }
 }

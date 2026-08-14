@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { fetchAutenticado } from "@/lib/api-client"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, deleteWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
+import { fetchWarrantyItems, countWarrantyItems, deleteWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -86,8 +87,10 @@ export default function ListaGarantiaPage() {
       router.push("/login")
       return
     }
-
-    loadWarrantyItems()
+    // A lista visível é montada pelo efeito paginado mais abaixo. Carregar a
+    // coleção inteira aqui além de desnecessário criava uma corrida: os dois
+    // carregamentos escreviam no mesmo estado e vencia o que respondesse por
+    // último.
   }, [user, router, toast])
 
   // Abrir modal de edição via URL (?edit=<id>)
@@ -139,13 +142,13 @@ export default function ListaGarantiaPage() {
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
   // }, [user, searchParams])
 
-  // Carregar total de itens (apenas para saber o total de páginas)
+  // Total de itens, apenas para calcular o número de páginas.
+  // Conta no servidor: devolve o número sem baixar os documentos.
   useEffect(() => {
     if (!user) return
     const fetchTotal = async () => {
       try {
-        const all = await fetchWarrantyItems()
-        setTotalItems(all.length)
+        setTotalItems(await countWarrantyItems())
       } catch {}
     }
     fetchTotal()
@@ -228,7 +231,7 @@ export default function ListaGarantiaPage() {
     // Enviar email se necessário
     if (selectedWarrantyItem && selectedWarrantyItem.email) {
       try {
-        await fetch('/api/send-email', {
+        await fetchAutenticado('/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -563,7 +566,7 @@ export default function ListaGarantiaPage() {
                 <div className="text-center py-4">Nenhuma garantia encontrada</div>
               ) : (
                 filteredItems.slice(0, pageSize).map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 bg-white dark:bg-gray-800">
+                  <div key={item.id} className="border rounded-lg p-3 bg-card">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-xs text-gray-500">
@@ -590,7 +593,7 @@ export default function ListaGarantiaPage() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Pendente</span>
                       )}
                     </div>
-                    <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="mt-2 grid grid-cols-1 gap-1 text-sm text-muted-foreground">
                       <div><span className="font-medium">Loja:</span> {item.loja}</div>
                       <div><span className="font-medium">Entrada:</span> {item.dataValidade}</div>
                       <div><span className="font-medium">WhatsApp:</span> {formatWhatsapp(item.whatsapp)}</div>
@@ -630,7 +633,7 @@ export default function ListaGarantiaPage() {
                     </tr>
                   ) : (
                     filteredItems.slice(0, pageSize).map((item) => (
-                      <tr key={item.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                      <tr key={item.id} className="border-b hover:bg-secondary/50">
                         {/* Garantias antigas não possuem numeroPedido e exibem "—" */}
                         <td className="py-3 px-4">{item.numeroPedido ?? "—"}</td>
                         <td className="py-3 px-4">
