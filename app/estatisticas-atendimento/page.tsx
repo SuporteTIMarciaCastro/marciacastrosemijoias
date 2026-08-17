@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { fetchAutenticado } from "@/lib/api-client"
 import Header from "@/components/header"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -125,7 +126,7 @@ export default function EstatisticasAtendimentoPage() {
     setError(null)
     try {
       const url = `${API_BASE}?date_from=${toApiDate(dateFrom)}&date_to=${toApiDate(dateTo)}`
-      const res = await fetch(url, { cache: "no-store" })
+      const res = await fetchAutenticado(url, { cache: "no-store" })
       if (!res.ok) throw new Error(`Erro ${res.status} ao consultar a API`)
       const json = await res.json()
       const arr: SellerStat[] = Array.isArray(json) ? json : json?.data ?? []
