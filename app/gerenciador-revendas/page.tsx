@@ -7,7 +7,15 @@ import Header from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import {
@@ -297,7 +305,15 @@ export default function GerenciadorRevendasPage() {
     const termo = busca.trim().toLowerCase()
     const termoCpf = normalizeCpf(busca)
     return carteira.lista.filter((item) => {
-      if (statusFiltro !== "todos" && item.status !== statusFiltro) return false
+      // As opcoes "situacao_*" filtram pelo prazo do ciclo, nao pelo campo
+      // status do cadastro — por isso sao tratadas antes.
+      if (statusFiltro === "situacao_atraso") {
+        if (!situacoes.get(item.id)?.emAtraso) return false
+      } else if (statusFiltro === "situacao_a_vencer") {
+        if (!situacoes.get(item.id)?.prestesAVencer) return false
+      } else if (statusFiltro !== "todos" && item.status !== statusFiltro) {
+        return false
+      }
 
       // O filtro de alerta compõe com a busca e o filtro de status.
       if (alertaFiltro !== "nenhum") {
@@ -535,11 +551,24 @@ export default function GerenciadorRevendasPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="todos">Todos os status</SelectItem>
-                          {REVENDEDORA_STATUS_CODES.map((codigo) => (
-                            <SelectItem key={codigo} value={codigo}>
-                              {getRevendedoraStatusLabel(codigo)}
-                            </SelectItem>
-                          ))}
+
+                          {/* Situacao do ciclo: derivada das datas, nao do
+                              cadastro. Separada para nao confundir com o
+                              status cadastral da revendedora. */}
+                          <SelectGroup>
+                            <SelectLabel>Prazo de prestação de contas</SelectLabel>
+                            <SelectItem value="situacao_atraso">Em atraso</SelectItem>
+                            <SelectItem value="situacao_a_vencer">Prestes a atrasar</SelectItem>
+                          </SelectGroup>
+
+                          <SelectGroup>
+                            <SelectLabel>Situação do cadastro</SelectLabel>
+                            {REVENDEDORA_STATUS_CODES.map((codigo) => (
+                              <SelectItem key={codigo} value={codigo}>
+                                {getRevendedoraStatusLabel(codigo)}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     </div>
