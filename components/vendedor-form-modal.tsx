@@ -20,6 +20,17 @@ import {
 } from "@/lib/vendedor-status"
 import { registrarAuditoria } from "@/lib/firebase/auditoria"
 import { calcularAlteracoes, type CampoAuditavel } from "@/lib/auditoria"
+import DocumentoVendedorModal from "@/components/documento-vendedor-modal"
+import { fetchDocumentosByVendedor } from "@/lib/firebase/documentos-vendedor"
+import {
+  DOCUMENTO_VENDEDOR_CODES,
+  agruparDocumentosVendedor,
+  documentosVendedorPendentes,
+  getDocumentoVendedorLabel,
+  isDocumentoVendedorObrigatorio,
+} from "@/lib/documento-vendedor"
+import type { DocumentoVendedor } from "@/types"
+import { Check, AlertTriangle, FileText, ChevronDown, ChevronRight } from "lucide-react"
 
 interface VendedorFormModalProps {
   isOpen: boolean
@@ -67,6 +78,10 @@ export default function VendedorFormModal({
   const [formData, setFormData] = useState(formInicial)
   const [usuarios, setUsuarios] = useState<{ email: string; name?: string }[]>([])
   const [original, setOriginal] = useState<Record<string, any> | null>(null)
+  const [documentos, setDocumentos] = useState<DocumentoVendedor[]>([])
+  const [modalDocumento, setModalDocumento] = useState(false)
+  const [tipoDocInicial, setTipoDocInicial] = useState<string | undefined>(undefined)
+  const [historicoAberto, setHistoricoAberto] = useState<Record<string, boolean>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
@@ -97,8 +112,11 @@ export default function VendedorFormModal({
     if (!vendedorId) {
       setFormData(formInicial)
       setOriginal(null)
+      setDocumentos([])
       return
     }
+
+    carregarDocumentos()
 
     setIsLoading(true)
     fetchVendedor(vendedorId)
@@ -123,6 +141,16 @@ export default function VendedorFormModal({
       })
       .finally(() => setIsLoading(false))
   }, [vendedorId, isOpen, toast])
+
+  const carregarDocumentos = async () => {
+    if (!vendedorId) return
+    try {
+      setDocumentos(await fetchDocumentosByVendedor(vendedorId))
+    } catch (error) {
+      console.error("Erro ao carregar documentos do vendedor:", error)
+      setDocumentos([])
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -209,7 +237,17 @@ export default function VendedorFormModal({
     }
   }
 
+  // Versão atual = primeiro de cada grupo, ordenado por data desc.
+  const documentosPorTipo = agruparDocumentosVendedor(documentos)
+  const pendentesVendedor = documentosVendedorPendentes(documentos)
+
+  const abrirEnvio = (tipo?: string) => {
+    setTipoDocInicial(tipo)
+    setModalDocumento(true)
+  }
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -304,6 +342,133 @@ export default function VendedorFormModal({
 
             {vendedorId && (
               <div className="rounded-md border p-3">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm font-medium text-foreground/80">
+                    Documentos do representante
+                  </div>
+                  <Button type="button" variant="outline" size="sm" onClick={() => abrirEnvio()}>
+                    Enviar documento
+                  </Button>
+                </div>
+
+                {pendentesVendedor.length > 0 ? (
+                  <div className="mb-3 flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-2.5 text-xs text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                    <AlertTriangle className="h-4 w-4 shrink-0" />
+                    <div>
+                      Faltando: {pendentesVendedor.map((t) => getDocumentoVendedorLabel(t)).join(", ")}.
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-3 flex gap-2 rounded-md border border-green-300 bg-green-50 p-2.5 text-xs text-green-800 dark:border-green-700 dark:bg-green-950 dark:text-green-200">
+                    <Check className="h-4 w-4 shrink-0" />
+                    <span>Documentação completa.</span>
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  {DOCUMENTO_VENDEDOR_CODES.map((tipo) => {
+                    const versoes = documentosPorTipo.get(tipo) ?? []
+                    const atual = versoes[0]
+                    const anteriores = versoes.slice(1)
+                    const obrigatorio = isDocumentoVendedorObrigatorio(tipo)
+                    const aberto = historicoAberto[tipo]
+
+                    return (
+                      <div key={tipo} className="rounded border p-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="flex items-center gap-2 text-sm">
+                            {atual ? (
+                              <Check className="h-4 w-4 text-green-600" />
+                            ) : obrigatorio ? (
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                            ) : (
+                              <span className="h-4 w-4" />
+                            )}
+                            {getDocumentoVendedorLabel(tipo)}
+                            {obrigatorio && <span className="text-red-500">*</span>}
+                            {versoes.length > 1 && (
+                              <span className="text-xs text-muted-foreground">v{versoes.length}</span>
+                            )}
+                          </span>
+
+                          <span className="flex items-center gap-3">
+                            {atual && (
+                              <a
+                                href={atual.driveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                Abrir
+                              </a>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => abrirEnvio(tipo)}
+                            >
+                              {atual ? "Nova versão" : "Enviar"}
+                            </Button>
+                          </span>
+                        </div>
+
+                        {atual && (
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            {new Date(atual.enviadoEm).toLocaleString("pt-BR")}
+                            {atual.enviadoPorNome ? ` · ${atual.enviadoPorNome}` : ""}
+                          </div>
+                        )}
+
+                        {anteriores.length > 0 && (
+                          <div className="mt-1.5">
+                            <button
+                              type="button"
+                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800"
+                              onClick={() =>
+                                setHistoricoAberto((prev) => ({ ...prev, [tipo]: !prev[tipo] }))
+                              }
+                            >
+                              {aberto ? (
+                                <ChevronDown className="h-3 w-3" />
+                              ) : (
+                                <ChevronRight className="h-3 w-3" />
+                              )}
+                              ver versões anteriores ({anteriores.length})
+                            </button>
+                            {aberto && (
+                              <ul className="mt-1 space-y-0.5 border-l pl-2.5 text-[11px] text-muted-foreground">
+                                {anteriores.map((versao, indice) => (
+                                  <li key={versao.id} className="flex items-center justify-between gap-2">
+                                    <span>
+                                      v{anteriores.length - indice} ·{" "}
+                                      {new Date(versao.enviadoEm).toLocaleString("pt-BR")}
+                                    </span>
+                                    <a
+                                      href={versao.driveUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800"
+                                    >
+                                      Abrir
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {vendedorId && (
+              <div className="rounded-md border p-3">
                 <div className="text-sm font-medium text-foreground/80">
                   Revendedoras vinculadas ({revendedorasVinculadas.length})
                 </div>
@@ -339,5 +504,21 @@ export default function VendedorFormModal({
         )}
       </DialogContent>
     </Dialog>
+
+    {/* Envio de documento do representante, sobre o modal de cadastro */}
+    {vendedorId && (
+      <DocumentoVendedorModal
+        isOpen={modalDocumento}
+        onClose={() => {
+          setModalDocumento(false)
+          setTipoDocInicial(undefined)
+        }}
+        vendedorId={vendedorId}
+        vendedorNome={formData.nome}
+        tipoInicial={tipoDocInicial}
+        onSuccess={carregarDocumentos}
+      />
+    )}
+    </>
   )
 }

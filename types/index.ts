@@ -92,6 +92,21 @@ export interface Revendedora {
   criadoPor?: string
 }
 
+// Documento anexado a um vendedor/representante
+// Um registro por ENVIO — nunca sobrescrito, mesma regra dos documentos da
+// revendedora: a versão é a posição na lista ordenada por enviadoEm.
+export interface DocumentoVendedor {
+  id: string
+  vendedorId: string
+  tipo: string // código. Ver lib/documento-vendedor.ts
+  driveUrl: string
+  nomeArquivo: string
+  tamanhoBytes?: number
+  enviadoPorEmail?: string
+  enviadoPorNome?: string
+  enviadoEm: string // ISO
+}
+
 // Documento anexado a uma revendedora (Gerenciador de Revendas)
 // Um registro por ENVIO — nunca sobrescrito. O histórico é imutável por
 // construção e a versão é a posição na lista ordenada por enviadoEm.

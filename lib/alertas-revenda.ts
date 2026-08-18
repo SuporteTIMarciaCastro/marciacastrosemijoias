@@ -1,4 +1,4 @@
-import { getStatusEfetivoCiclo, arredondar2 } from "@/lib/ciclo-status"
+import { getStatusEfetivoCiclo, arredondar2, diasAteVencer } from "@/lib/ciclo-status"
 import type { Ciclo, Revendedora, Vendedor } from "@/types"
 
 /**
@@ -106,6 +106,27 @@ export function maxDiasEmAtraso(ciclos: Ciclo[]): number {
   return ciclos.reduce((maior, ciclo) => Math.max(maior, diasEmAtraso(ciclo)), 0)
 }
 
+/**
+ * Ciclo dentro da faixa de aviso: falta pouco para vencer, mas ainda não
+ * venceu. Serve para cobrar a prestação de contas com antecedência.
+ */
+export function estaPrestesAVencer(ciclo: Ciclo): boolean {
+  return getStatusEfetivoCiclo(ciclo) === "a_vencer"
+}
+
+/**
+ * Menor número de dias até o vencimento entre os ciclos que estão na faixa de
+ * aviso. É esse número que a tela mostra na contagem regressiva.
+ */
+export function menorDiasParaVencer(ciclos: Ciclo[]): number | null {
+  const prazos = ciclos
+    .filter((ciclo) => estaPrestesAVencer(ciclo))
+    .map((ciclo) => diasAteVencer(ciclo.dataEncerramentoPrevista))
+    .filter((dias): dias is number => dias !== null)
+
+  return prazos.length > 0 ? Math.min(...prazos) : null
+}
+
 export interface LinhaRelatorioVendedor {
   /** vazio identifica a linha "Sem vendedor definido" */
   vendedorId: string
@@ -176,6 +197,10 @@ export function montarRelatorioVendedores(
 export interface SituacaoRevendedora {
   exposicao: number
   emAtraso: boolean
+  /** dentro da faixa de aviso: falta pouco para vencer, mas ainda nao venceu */
+  prestesAVencer: boolean
+  /** dias restantes ate o vencimento, quando na faixa de aviso */
+  diasParaVencer: number | null
   classificacao: ClassificacaoLimite
   percentual: number | null
 }
@@ -201,9 +226,12 @@ export function montarSituacoes(
   for (const revendedora of revendedoras) {
     const ciclos = porRevendedora.get(revendedora.id) ?? []
     const exposicao = calcularExposicao(ciclos)
+    const diasParaVencer = menorDiasParaVencer(ciclos)
     situacoes.set(revendedora.id, {
       exposicao,
       emAtraso: temAtraso(ciclos),
+      prestesAVencer: diasParaVencer !== null,
+      diasParaVencer,
       classificacao: classificarLimite(exposicao, revendedora.limiteConsignado),
       percentual: percentualDoLimite(exposicao, revendedora.limiteConsignado),
     })

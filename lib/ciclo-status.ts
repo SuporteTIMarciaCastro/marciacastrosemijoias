@@ -15,6 +15,8 @@ export const CICLO_STATUS_LABELS: Record<string, string> = {
   // "em andamento".
   aguardando_prestacao: "Aguardando prestação de contas",
   aguardando_pagamento: "Aguardando pagamento",
+  // Derivado, nunca gravado: faixa de aviso antes do vencimento.
+  a_vencer: "Prestes a atrasar",
   em_atraso: "Em atraso",
   encerrado: "Encerrado",
   renegociado: "Renegociado",
@@ -29,6 +31,14 @@ export const CICLO_STATUS_CODES = [
 ] as const
 
 export const CICLO_STATUS_PADRAO = "em_andamento"
+
+/**
+ * Antecedência do aviso de vencimento, em dias.
+ *
+ * A partir daqui o ciclo passa a exibir contagem regressiva — 5, 4, 3, 2, 1 —
+ * e ao chegar a zero já conta como atraso.
+ */
+export const DIAS_AVISO_VENCIMENTO = 5
 
 /**
  * Status que mantêm o ciclo ABERTO e portanto bloqueiam uma nova entrega.
@@ -47,6 +57,8 @@ export const CICLO_STATUS_CORES: Record<string, string> = {
   em_andamento: "bg-blue-100 text-blue-800",
   aguardando_prestacao: "bg-amber-100 text-amber-800",
   aguardando_pagamento: "bg-amber-100 text-amber-800",
+  // Laranja: entre o âmbar do "aguardando" e o vermelho do atraso.
+  a_vencer: "bg-orange-100 text-orange-800",
   em_atraso: "bg-red-100 text-red-800",
   encerrado: "bg-green-100 text-green-800",
   renegociado: "bg-purple-100 text-purple-800",
@@ -132,6 +144,25 @@ export function getCicloStatusCor(status?: string | null): string {
  * Status efetivo para exibição: devolve `em_atraso` quando o ciclo ainda está
  * aberto e a data prevista de encerramento já passou. Nada é gravado.
  */
+/** Quantos dias faltam para o vencimento. Zero ou negativo = já venceu. */
+export function diasAteVencer(dataEncerramentoPrevista?: string): number | null {
+  if (!dataEncerramentoPrevista) return null
+  // Meio-dia UTC nos dois lados neutraliza o fuso: sem isso, o Brasil (UTC-3)
+  // faria a conta pular um dia dependendo da hora em que a tela abre.
+  const hoje = new Date().toISOString().slice(0, 10)
+  const diferenca =
+    new Date(`${dataEncerramentoPrevista}T12:00:00Z`).getTime() -
+    new Date(`${hoje}T12:00:00Z`).getTime()
+  return Math.round(diferenca / 86400000)
+}
+
+/** Rótulo da contagem regressiva: "Vence em 3 dias", "Vence amanhã". */
+export function rotuloContagem(dias: number): string {
+  if (dias <= 0) return "Vence hoje"
+  if (dias === 1) return "Vence amanhã"
+  return `Vence em ${dias} dias`
+}
+
 export function getStatusEfetivoCiclo(ciclo: {
   status?: string
   dataEncerramentoPrevista?: string
@@ -143,11 +174,15 @@ export function getStatusEfetivoCiclo(ciclo: {
   if (!podeAtrasar.includes(status)) {
     return status
   }
-  if (!ciclo.dataEncerramentoPrevista) return status
 
-  // Compara apenas a data (yyyy-mm-dd), evitando fuso horário.
-  const hoje = new Date().toISOString().slice(0, 10)
-  return ciclo.dataEncerramentoPrevista < hoje ? "em_atraso" : status
+  const dias = diasAteVencer(ciclo.dataEncerramentoPrevista)
+  if (dias === null) return status
+
+  // Chegou a zero: já conta como atraso, conforme a regra do negócio.
+  if (dias <= 0) return "em_atraso"
+  // Faixa de aviso: cinco dias antes, com contagem regressiva.
+  if (dias <= DIAS_AVISO_VENCIMENTO) return "a_vencer"
+  return status
 }
 
 // Soma dias a uma data no formato yyyy-mm-dd, devolvendo no mesmo formato.

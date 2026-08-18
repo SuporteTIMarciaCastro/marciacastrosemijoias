@@ -46,6 +46,7 @@ import {
   LIMITE_ALERTA,
 } from "@/lib/alertas-revenda"
 import { formatCpf, normalizeCpf } from "@/lib/cpf"
+import { rotuloContagem } from "@/lib/ciclo-status"
 import {
   REVENDEDORA_STATUS_CODES,
   getRevendedoraStatusLabel,
@@ -67,7 +68,7 @@ import type {
   Vendedor,
 } from "@/types"
 import { cn } from "@/lib/utils"
-import { Filter, X, AlertTriangle, Clock, Gauge, HelpCircle } from "lucide-react"
+import { Filter, X, AlertTriangle, Clock, Gauge, HelpCircle, CalendarClock } from "lucide-react"
 
 const formatarWhatsapp = (value?: string | null) => {
   if (!value) return "-"
@@ -97,7 +98,7 @@ export default function GerenciadorRevendasPage() {
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [documentos, setDocumentos] = useState<DocumentoRevendedora[]>([])
   const [ciclosAbertos, setCiclosAbertos] = useState<Ciclo[]>([])
-  const [alertaFiltro, setAlertaFiltro] = useState<"nenhum" | "atraso" | "limite" | "sem_limite">(
+  const [alertaFiltro, setAlertaFiltro] = useState<"nenhum" | "atraso" | "a_vencer" | "limite" | "sem_limite">(
     "nenhum"
   )
   const [ordenacao, setOrdenacao] = useState<"valor" | "dias">("valor")
@@ -273,14 +274,16 @@ export default function GerenciadorRevendasPage() {
 
   const resumo = useMemo(() => {
     let atraso = 0
+    let aVencer = 0
     let limite = 0
     let semLimite = 0
     for (const situacao of situacoes.values()) {
       if (situacao.emAtraso) atraso++
+      if (situacao.prestesAVencer) aVencer++
       if (situacao.classificacao === "alerta" || situacao.classificacao === "critico") limite++
       if (situacao.classificacao === "sem_limite") semLimite++
     }
-    return { atraso, limite, semLimite }
+    return { atraso, aVencer, limite, semLimite }
   }, [situacoes])
 
   // Restrição de carteira: falha fechada — usuário restrito e sem vínculo vê
@@ -301,6 +304,7 @@ export default function GerenciadorRevendasPage() {
         const situacao = situacoes.get(item.id)
         if (!situacao) return false
         if (alertaFiltro === "atraso" && !situacao.emAtraso) return false
+        if (alertaFiltro === "a_vencer" && !situacao.prestesAVencer) return false
         if (
           alertaFiltro === "limite" &&
           situacao.classificacao !== "alerta" &&
@@ -440,7 +444,7 @@ export default function GerenciadorRevendasPage() {
               </CardHeader>
               <CardContent>
                 {/* Painel de alertas — tudo calculado na leitura */}
-                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
                     {
                       chave: "atraso" as const,
@@ -448,6 +452,16 @@ export default function GerenciadorRevendasPage() {
                       total: resumo.atraso,
                       titulo: resumo.atraso === 1 ? "revendedora em atraso" : "revendedoras em atraso",
                       cor: "border-red-300 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950 dark:text-red-200",
+                    },
+                    {
+                      chave: "a_vencer" as const,
+                      icone: CalendarClock,
+                      total: resumo.aVencer,
+                      titulo:
+                        resumo.aVencer === 1
+                          ? "prestes a atrasar"
+                          : "prestes a atrasar",
+                      cor: "border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-700 dark:bg-orange-950 dark:text-orange-200",
                     },
                     {
                       chave: "limite" as const,
@@ -560,6 +574,14 @@ export default function GerenciadorRevendasPage() {
                             {(pendenciasPorRevendedora.get(item.id) ?? 0) > 0 && (
                               <AlertTriangle className="h-4 w-4 text-amber-600" />
                             )}
+                            {situacoes.get(item.id)?.emAtraso && (
+                              <Clock className="h-4 w-4 text-red-600" />
+                            )}
+                            {situacoes.get(item.id)?.prestesAVencer && (
+                              <span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-200">
+                                {rotuloContagem(situacoes.get(item.id)!.diasParaVencer ?? 0)}
+                              </span>
+                            )}
                           </div>
                           <ActionsMenu
                             pageType="gerenciadorRevendas"
@@ -632,6 +654,15 @@ export default function GerenciadorRevendasPage() {
                                     title="Possui ciclo em atraso"
                                   >
                                     <Clock className="h-4 w-4" />
+                                  </span>
+                                )}
+                                {/* Contagem regressiva: aparece nos cinco dias
+                                    anteriores ao vencimento, para cobrar a
+                                    prestacao de contas antes de atrasar. */}
+                                {situacoes.get(item.id)?.prestesAVencer && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-800 dark:bg-orange-950 dark:text-orange-200">
+                                    <CalendarClock className="h-3 w-3" />
+                                    {rotuloContagem(situacoes.get(item.id)!.diasParaVencer ?? 0)}
                                   </span>
                                 )}
                               </span>
