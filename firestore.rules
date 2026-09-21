@@ -1,0 +1,102 @@
+rules_version = '2';
+
+// Regras de seguranca do Firestore — Marcia Castro Semijoias
+//
+// HISTORICO: ate 08/09/2026 o banco rodava com as regras provisorias que o
+// console gera ao criar o projeto em "modo de teste". Elas tinham prazo de
+// validade embutido (`request.time < timestamp.date(2026, 9, 5)`) e, ao
+// vencer, passaram a recusar TODA requisicao vinda do navegador. O sintoma na
+// tela era "Ocorreu um erro ao fazer login": a autenticacao passava, mas a
+// leitura seguinte de users/{uid} era negada.
+//
+// Por isso este arquivo agora vive no repositorio: regra de seguranca sem
+// versionamento nao tem revisao, nao tem historico e vence sem ninguem ver.
+//
+// PRINCIPIO: o sistema inteiro fica atras do login. Nao existe tela publica.
+// Logo, toda leitura e escrita exige `request.auth != null`. O controle fino
+// de quem pode o que continua sendo feito pelo objeto `permissions` do
+// usuario, na aplicacao — estas regras sao o piso, nao o teto.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    // ---------------------------------------------------------------
+    // Fichas de usuario
+    // ---------------------------------------------------------------
+    // Leitura: qualquer usuario logado. E necessario porque o app le a
+    // colecao inteira em tres pontos (lista de usuarios, tabela de dados e o
+    // seletor de usuario do cadastro de vendedor), alem da propria ficha em
+    // todo login.
+    //
+    // Escrita: BLOQUEADA para o navegador. Criar, editar e excluir usuario
+    // passa pelas rotas /api/users/*, que rodam no servidor com o Admin SDK
+    // e nao sao submetidas a estas regras. Assim ninguem consegue se promover
+    // a administrador mexendo no proprio documento pelo console do browser.
+    match /users/{uid} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // Modulos operacionais
+    // ---------------------------------------------------------------
+    // Garantia: a pagina /lista-garantia/visualizar/{id} e PUBLICA. O cliente
+    // chega nela pelo QR Code impresso no comprovante, sem login; e a equipe
+    // tambem, porque "Visualizar" abre em aba nova e, sem "Lembrar por 15
+    // dias", a sessao nao acompanha a aba.
+    // `get` le UM documento pelo ID exato (20 caracteres aleatorios, nao da
+    // para adivinhar). `list` — consultar ou varrer a colecao — continua
+    // exigindo login, assim como qualquer escrita.
+    match /warranty/{documento} {
+      allow get: if true;
+      allow list, write: if autenticado();
+    }
+
+    // Lista de desejos: o "Formulario para Cliente" e PUBLICO. O cliente cria
+    // o proprio pedido sem login, mas nao le, altera nem apaga nada. O status
+    // e sempre "Pendente" (addWishlistItem grava fixo), o que impede criar
+    // pedido ja como concluido por fora do formulario.
+    match /wishlist/{documento} {
+      allow create: if autenticado() || request.resource.data.status == 'Pendente';
+      allow read, update, delete: if autenticado();
+    }
+    match /pagamentos/{documento}            { allow read, write: if autenticado(); }
+    // ATENCAO ao hifen: a colecao chama "material-requests", nao "material".
+    // Ver COLLECTION_NAME em lib/firebase/material-requests.ts
+    match /material-requests/{documento}     { allow read, write: if autenticado(); }
+
+    // Contador do numero sequencial de pedido da garantia. Escrito dentro de
+    // uma transaction em lib/firebase/warranty.ts.
+    match /counters/{documento}              { allow read, write: if autenticado(); }
+
+    // ---------------------------------------------------------------
+    // Gerenciador de Revendas
+    // ---------------------------------------------------------------
+    match /revendedoras/{documento}          { allow read, write: if autenticado(); }
+    match /vendedores/{documento}            { allow read, write: if autenticado(); }
+    match /ciclos/{documento}                { allow read, write: if autenticado(); }
+    match /documentosRevendedora/{documento} { allow read, write: if autenticado(); }
+    match /documentosVendedor/{documento}    { allow read, write: if autenticado(); }
+
+    // Log de auditoria: registra quem fez o que. Nao pode ser alterado nem
+    // apagado pelo navegador, senao o rastro perde o valor.
+    match /auditoria/{documento} {
+      allow read, create: if autenticado();
+      allow update, delete: if false;
+    }
+
+    // ---------------------------------------------------------------
+    // Porta fechada
+    // ---------------------------------------------------------------
+    // Colecao nao declarada acima nao e acessivel pelo cliente. Ao criar um
+    // modulo novo, adicione a regra dele aqui — o erro sera
+    // "permission-denied", nunca um vazamento silencioso.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
