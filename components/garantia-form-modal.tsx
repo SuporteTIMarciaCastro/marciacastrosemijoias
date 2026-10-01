@@ -207,10 +207,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
         if (file.size > MAX_FILE_SIZE_BYTES) {
           toast({
             title: "Arquivo muito grande",
-            description: "Cada imagem precisa ter no máximo 5MB.",
+            description: `Cada imagem precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`,
             variant: "destructive",
           })
-          setImagemPecasError("Cada imagem precisa ter no máximo 5MB.")
+          setImagemPecasError(`Cada imagem precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`)
           continue
         }
 
@@ -274,10 +274,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
 
     if (!isImage && file.size > MAX_FILE_SIZE_BYTES) {
-      setNotaCompraError("O arquivo precisa ter no máximo 5MB.")
+      setNotaCompraError(`O arquivo precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`)
       toast({
         title: "Arquivo muito grande",
-        description: "O arquivo da nota precisa ter no máximo 5MB.",
+        description: `O arquivo da nota precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`,
         variant: "destructive",
       })
       target.value = ""
@@ -285,10 +285,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
 
     if (isImage && file.size > MAX_FILE_SIZE_BYTES) {
-      setNotaCompraError("O arquivo precisa ter no máximo 5MB.")
+      setNotaCompraError(`O arquivo precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`)
       toast({
         title: "Arquivo muito grande",
-        description: "A imagem da nota precisa ter no máximo 5MB.",
+        description: `A imagem da nota precisa ter no máximo ${MAX_FILE_SIZE_MB}MB.`,
         variant: "destructive",
       })
       target.value = ""
@@ -653,7 +653,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               </div>
               {notaCompraError && <span className="text-xs text-red-500">{notaCompraError}</span>}
               <p className="text-sm text-gray-500">
-                Apenas arquivos PDF ou imagem. Tamanho máximo de 5MB.
+                Apenas arquivos PDF ou imagem. Tamanho máximo de {MAX_FILE_SIZE_MB}MB.
               </p>
             </div>
 
@@ -695,7 +695,7 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
               </div>
               {imagemPecasError && <span className="text-xs text-red-500">{imagemPecasError}</span>}
               <p className="text-sm text-gray-500">
-                Selecione uma ou mais imagens (máx. 5MB cada).
+                Selecione uma ou mais imagens (máx. {MAX_FILE_SIZE_MB}MB cada).
               </p>
             </div>
 

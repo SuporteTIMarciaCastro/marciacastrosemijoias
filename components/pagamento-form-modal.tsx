@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { fetchAutenticado } from "@/lib/api-client"
 import { uploadParaDrive } from "@/lib/google-drive"
-import { PASTA_DRIVE_PAGAMENTOS, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
+import { PASTA_DRIVE_PAGAMENTOS, mensagemDeErroDeEnvio, LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -61,7 +61,8 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     dataVencimento: "",
   })
 
-  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+  // Alinhado a LIMITE_ENVIO_MB: o envio vai direto para o Drive.
+  const MAX_FILE_SIZE = LIMITE_ENVIO_MB * 1024 * 1024
 
   const { user } = useAuth()
 
@@ -149,10 +150,10 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
         try {
           return await compressImage(file)
         } catch (error) {
-          throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
+          throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: ${LIMITE_ENVIO_MB}MB`)
         }
       } else {
-        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
+        throw new Error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: ${LIMITE_ENVIO_MB}MB`)
       }
     }
 
@@ -169,7 +170,7 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     if (files && files[0]) {
       const file = files[0]
       if (file.size > MAX_FILE_SIZE) {
-        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: 5MB`)
+        toast.error(`Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(2)}MB). Tamanho máximo permitido: ${LIMITE_ENVIO_MB}MB`)
         e.target.value = ''
         return
       }

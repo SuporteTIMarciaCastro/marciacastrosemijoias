@@ -66,7 +66,7 @@ export function CompressibleImageInput({
     const compressionThresholdBytes = compressionThresholdMB * 1024 * 1024
 
     if (file.size > maxFileSizeBytes) {
-      onErrorMessageChange?.("A imagem excede o limite de 5MB.")
+      onErrorMessageChange?.(`A imagem excede o limite de ${maxFileSizeMB}MB.`)
       onFileProcessed(null)
       onPreviewChange(null)
       if (inputRef.current) {
@@ -74,7 +74,7 @@ export function CompressibleImageInput({
       }
       toast({
         title: "Arquivo muito grande",
-        description: "A imagem precisa ter no máximo 5MB para ser enviada.",
+        description: `A imagem precisa ter no máximo ${maxFileSizeMB}MB para ser enviada.`,
         variant: "destructive",
       })
       return
