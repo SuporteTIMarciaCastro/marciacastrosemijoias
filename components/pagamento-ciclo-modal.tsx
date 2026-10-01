@@ -14,7 +14,7 @@ import { useAuth } from "@/context/auth-context"
 import { Loader2 } from "lucide-react"
 import { registrarPagamento } from "@/lib/firebase/ciclos"
 import { uploadParaDrive, PASTA_DRIVE_REVENDAS } from "@/lib/google-drive"
-import { ehErroArquivoGrande } from "@/lib/upload-limites"
+import { ehErroArquivoGrande, LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 import {
   FORMA_PAGAMENTO_CODES,
   FORMA_PAGAMENTO_PADRAO,
@@ -31,7 +31,8 @@ interface PagamentoCicloModalProps {
   onSuccess: () => void
 }
 
-const MAX_FILE_SIZE_MB = 5
+// Alinhado a LIMITE_ENVIO_MB: o envio vai direto para o Drive.
+const MAX_FILE_SIZE_MB = LIMITE_ENVIO_MB
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 const hojeISO = () => new Date().toISOString().slice(0, 10)

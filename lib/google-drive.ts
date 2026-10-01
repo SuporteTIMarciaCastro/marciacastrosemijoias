@@ -1,5 +1,9 @@
 import { fetchAutenticado } from "@/lib/api-client"
-import { validarTamanhoParaEnvio } from "@/lib/upload-limites"
+import {
+  validarTamanhoParaEnvio,
+  ehErroArquivoGrande,
+  LIMITE_RESERVA_BYTES,
+} from "@/lib/upload-limites"
 
 // Anexos do sistema vão para o Google Drive, não para o Firebase Storage
 // (lib/firebase/config.ts nem inicializa o Storage). O fluxo é:
@@ -49,10 +53,76 @@ export async function uploadParaDrive(
     ? new File([file], `${nomeArquivo}.${extensaoDoArquivo(file.name)}`, { type: file.type })
     : file
 
-  // Antes de sair pela rede: acima do teto da plataforma a requisicao e
-  // recusada fora da aplicacao, e o erro chega sem explicacao nenhuma.
   validarTamanhoParaEnvio(arquivo)
 
+  try {
+    return await enviarDireto(arquivo, folderId, publico)
+  } catch (erro) {
+    if (ehErroArquivoGrande(erro)) throw erro
+
+    // Reserva: se o envio direto falhar (rede, CORS bloqueado por extensao,
+    // indisponibilidade do Google), tenta o caminho antigo, que atravessa o
+    // servidor. So vale para arquivo pequeno — acima disso a plataforma
+    // recusaria a requisicao de qualquer forma.
+    if (arquivo.size > LIMITE_RESERVA_BYTES) throw erro
+    console.warn("Envio direto falhou, usando a rota tradicional:", erro)
+    return enviarPelaRotaAntiga(arquivo, folderId, publico)
+  }
+}
+
+/**
+ * Caminho principal: o navegador manda os bytes direto para o Google.
+ *
+ * O servidor participa so de duas chamadas pequenas — abrir a sessao e, quando
+ * o arquivo precisa ser publico, dar a permissao. Assim o arquivo nunca
+ * atravessa a nossa funcao e o teto de ~4,5 MB da plataforma deixa de existir.
+ */
+async function enviarDireto(arquivo: File, folderId: string, publico: boolean): Promise<string> {
+  const inicio = await fetchAutenticado("/api/upload/sessao", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      nomeArquivo: arquivo.name,
+      mimeType: arquivo.type || "application/octet-stream",
+      folderId,
+      tamanho: arquivo.size,
+    }),
+  })
+
+  if (!inicio.ok) throw new Error(`Falha ao iniciar o envio (${inicio.status})`)
+  const { sessionUrl } = await inicio.json()
+  if (!sessionUrl) throw new Error("Sessao de envio nao retornada")
+
+  const envio = await fetch(sessionUrl, {
+    method: "PUT",
+    headers: { "Content-Type": arquivo.type || "application/octet-stream" },
+    body: arquivo,
+  })
+
+  if (!envio.ok) throw new Error(`Falha ao enviar o arquivo (${envio.status})`)
+  const dados = await envio.json()
+  if (!dados?.id) throw new Error("O Drive nao devolveu o id do arquivo")
+
+  // Documento pessoal nao e publicado: herda a permissao da pasta restrita.
+  if (!publico) return dados.webViewLink as string
+
+  const publicacao = await fetchAutenticado("/api/upload/publicar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileId: dados.id, folderId }),
+  })
+
+  if (!publicacao.ok) throw new Error(`Falha ao liberar o arquivo (${publicacao.status})`)
+  const resultado = await publicacao.json()
+  return (resultado.fileUrl ?? dados.webViewLink) as string
+}
+
+/** Caminho antigo, mantido como reserva. O arquivo atravessa o servidor. */
+async function enviarPelaRotaAntiga(
+  arquivo: File,
+  folderId: string,
+  publico: boolean
+): Promise<string> {
   const formData = new FormData()
   formData.append("file", arquivo)
   formData.append("folderId", folderId)

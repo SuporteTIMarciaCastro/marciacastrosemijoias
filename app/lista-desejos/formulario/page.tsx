@@ -15,7 +15,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { addWishlistItem } from "@/lib/firebase/wishlist"
 import { CheckCircle2 } from "lucide-react"
 import { CompressibleImageInput } from "@/components/compressible-image-input"
-import { validarTamanhoParaEnvio, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
+import { uploadParaDrive } from "@/lib/google-drive"
+import { PASTA_DRIVE_FORMULARIO_PUBLICO, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
 // import { GoogleDriveUploader, UploadResult } from "@/google-drive-uploader-component/components/GoogleDriveUploader"
 
 export default function FormularioDesejoPage() {
@@ -66,29 +67,16 @@ export default function FormularioDesejoPage() {
   }
 
   const uploadFileToDrive = async (file: File): Promise<string> => {
-    // Acima do teto da plataforma a requisicao e recusada fora da aplicacao e
-    // o cliente so veria uma falha sem explicacao.
-    validarTamanhoParaEnvio(file)
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("folderId", "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP") // ID da pasta da lista de desejos
+    // O limite de tamanho e conferido dentro de uploadParaDrive, que recusa
+    // antes de sair pela rede e devolve a mensagem pronta para a tela.
 
     // Mostrar animação de upload enquanto o arquivo é processado
     setIsUploadingImage(true)
     setProcessingMessage("Enviando sua solicitação...")
     try {
-      const response = await fetchAutenticado("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error("Erro ao fazer upload do arquivo")
-      }
-
-      const result = await response.json()
-      return result.fileUrl
+      // Vai direto do navegador para o Drive. A rota da sessao aceita este
+      // envio sem login por ser a pasta do formulario do cliente.
+      return await uploadParaDrive(file, PASTA_DRIVE_FORMULARIO_PUBLICO)
     } finally {
       setProcessingMessage(null)
       setIsUploadingImage(false)

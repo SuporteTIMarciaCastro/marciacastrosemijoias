@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { fetchAutenticado } from "@/lib/api-client"
+import { uploadParaDrive } from "@/lib/google-drive"
+import { PASTA_DRIVE_PAGAMENTOS, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -190,23 +192,10 @@ export default function PagamentoFormModal({ isOpen, onClose, pagamentoId, onSuc
     return result
   }
 
-  const uploadFileToDrive = async (file: File): Promise<string> => {
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("folderId", "1i55quYEmytJU_AhBs3b2AnZVAo3YAnlT") // ID da pasta de pagamentos
-
-    const response = await fetchAutenticado("/api/upload", {
-      method: "POST",
-      body: formData,
-    })
-
-    if (!response.ok) {
-      throw new Error("Erro ao fazer upload do arquivo")
-    }
-
-    const result = await response.json()
-    return result.fileUrl
-  }
+  // Envia direto do navegador para o Drive (ver lib/google-drive.ts): o arquivo
+  // nao atravessa o servidor, entao nao esbarra no teto da plataforma.
+  const uploadFileToDrive = (file: File): Promise<string> =>
+    uploadParaDrive(file, PASTA_DRIVE_PAGAMENTOS)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -1,26 +1,53 @@
 /**
- * Teto de tamanho dos envios de arquivo.
+ * Limite de tamanho dos envios e pastas de destino no Drive.
  *
- * A Vercel recusa requisicoes acima de ~4,5 MB ANTES de elas chegarem no nosso
- * codigo, devolvendo FUNCTION_PAYLOAD_TOO_LARGE. Como a recusa acontece fora
- * da aplicacao, nao adianta tratar dentro de /api/upload: o jeito e nao deixar
- * a requisicao sair grande demais.
+ * HISTORICO: a plataforma recusa requisicoes acima de ~4,5 MB ANTES de elas
+ * chegarem na aplicacao (FUNCTION_PAYLOAD_TOO_LARGE). Medido em producao em
+ * 01/10/2026 contra /api/upload: 4 MB passava, 4,5 MB nao. Como o 413 caia no
+ * catch generico dos formularios, o sintoma era enganoso — a tela dizia "Nao
+ * foi possivel adicionar a garantia", apontando para o lugar errado.
  *
- * Medido em producao (01/10/2026), enviando para /api/upload:
- *   0,5 MB -> 200    4,0 MB -> 200
- *   1,5 MB -> 200    4,5 MB -> 413 FUNCTION_PAYLOAD_TOO_LARGE
- *   3,0 MB -> 200    5,0 MB -> 413 FUNCTION_PAYLOAD_TOO_LARGE
- *
- * Por isso o limite aqui e 4 MB, nao 4,5: o arquivo viaja dentro de um
- * multipart que carrega tambem nome, tipo e cabecalhos, e esse acrescimo conta
- * para o calculo da plataforma.
- *
- * O sintoma dessa falha era enganoso: a tela mostrava "Nao foi possivel
- * adicionar a garantia", porque o 413 caia no catch generico do formulario.
+ * Por isso o arquivo deixou de passar pelo nosso servidor: o navegador envia
+ * direto para o Google (ver /api/upload/sessao e lib/google-drive.ts), e o
+ * teto da plataforma some do caminho. O limite abaixo e regra NOSSA, de
+ * produto, nao imposicao de infraestrutura.
  */
 
-export const LIMITE_ENVIO_MB = 4
+export const LIMITE_ENVIO_MB = 10
 export const LIMITE_ENVIO_BYTES = LIMITE_ENVIO_MB * 1024 * 1024
+
+/**
+ * Teto do envio tradicional, que ainda atravessa o servidor. So e usado como
+ * reserva, quando o envio direto falha; acima disto a reserva nem e tentada,
+ * porque a plataforma recusaria.
+ */
+export const LIMITE_RESERVA_BYTES = 4 * 1024 * 1024
+
+// ---------------------------------------------------------------------------
+// Pastas do Drive
+// ---------------------------------------------------------------------------
+// A sessao de envio usa a credencial da empresa. Sem uma lista fechada, quem
+// chamasse a rota poderia gravar em qualquer pasta do Drive.
+
+/** Garantia e Gerenciador de Revendas (romaneios, fotos de entrega). */
+export const PASTA_DRIVE_GARANTIA = "1-NZHEq0_4bKpL99KN2K-u5eQTxJ7BXfn"
+/** Comprovantes de pagamento. */
+export const PASTA_DRIVE_PAGAMENTOS = "1i55quYEmytJU_AhBs3b2AnZVAo3YAnlT"
+/** Fotos do "Formulario para Cliente" da lista de desejos — envio SEM login. */
+export const PASTA_DRIVE_FORMULARIO_PUBLICO = "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP"
+/** Documentos pessoais de revendedoras e representantes. Pasta restrita. */
+export const PASTA_DRIVE_DOCUMENTOS = "1J8u8a8hpi4Kd-tNF2ipMgz_oBXpf49qU"
+
+export const PASTAS_PERMITIDAS: string[] = [
+  PASTA_DRIVE_GARANTIA,
+  PASTA_DRIVE_PAGAMENTOS,
+  PASTA_DRIVE_FORMULARIO_PUBLICO,
+  PASTA_DRIVE_DOCUMENTOS,
+]
+
+// ---------------------------------------------------------------------------
+// Erro de arquivo grande
+// ---------------------------------------------------------------------------
 
 /** Erro com mensagem pronta para a tela, dizendo qual arquivo e por quanto passou. */
 export class ErroArquivoGrande extends Error {
@@ -39,7 +66,7 @@ export class ErroArquivoGrande extends Error {
   }
 }
 
-/** Interrompe o envio quando o arquivo passa do teto da plataforma. */
+/** Interrompe o envio quando o arquivo passa do limite. */
 export function validarTamanhoParaEnvio(file: File): void {
   if (file.size > LIMITE_ENVIO_BYTES) {
     throw new ErroArquivoGrande(file.name, file.size)

@@ -20,7 +20,7 @@ import {
 } from "@/lib/firebase/ciclos"
 import { fetchVendedores } from "@/lib/firebase/vendedores"
 import { uploadParaDrive, PASTA_DRIVE_REVENDAS } from "@/lib/google-drive"
-import { mensagemDeErroDeEnvio } from "@/lib/upload-limites"
+import { mensagemDeErroDeEnvio, LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 import { somarDias, formatarDataBR } from "@/lib/ciclo-status"
 import { registrarAuditoria } from "@/lib/firebase/auditoria"
 import { formatarMoedaAuditoria } from "@/lib/auditoria"
@@ -42,7 +42,8 @@ interface CicloFormModalProps {
   onSuccess: () => void
 }
 
-const MAX_FILE_SIZE_MB = 5
+// Alinhado a LIMITE_ENVIO_MB: o envio vai direto para o Drive.
+const MAX_FILE_SIZE_MB = LIMITE_ENVIO_MB
 const COMPRESSION_TARGET_MB = 1.5
 const MAX_WIDTH_OR_HEIGHT = 2000
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024

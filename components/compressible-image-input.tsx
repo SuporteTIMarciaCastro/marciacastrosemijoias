@@ -6,6 +6,7 @@ import imageCompression from "browser-image-compression"
 
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
+import { LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 
 interface CompressibleImageInputProps {
   id?: string
@@ -26,7 +27,8 @@ interface CompressibleImageInputProps {
   compressionTargetMB?: number
 }
 
-const DEFAULT_MAX_FILE_SIZE_MB = 5
+// Alinhado a LIMITE_ENVIO_MB: o envio vai direto para o Drive.
+const DEFAULT_MAX_FILE_SIZE_MB = LIMITE_ENVIO_MB
 const DEFAULT_COMPRESSION_THRESHOLD_MB = 2
 const DEFAULT_COMPRESSION_TARGET_MB = 1.5
 const MAX_WIDTH_OR_HEIGHT = 2000

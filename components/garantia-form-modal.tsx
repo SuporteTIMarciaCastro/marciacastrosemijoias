@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { fetchAutenticado } from "@/lib/api-client"
-import { validarTamanhoParaEnvio, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
+import { uploadParaDrive } from "@/lib/google-drive"
+import { PASTA_DRIVE_GARANTIA, mensagemDeErroDeEnvio, LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 
 import { useState, useEffect } from "react"
 import imageCompression from "browser-image-compression"
@@ -25,7 +26,8 @@ interface GarantiaFormModalProps {
   onSuccess: () => void
 }
 
-const MAX_FILE_SIZE_MB = 5
+// Alinhado a LIMITE_ENVIO_MB: o envio vai direto para o Drive.
+const MAX_FILE_SIZE_MB = LIMITE_ENVIO_MB
 const COMPRESSION_TARGET_MB = 1.5
 const MAX_WIDTH_OR_HEIGHT = 2000
 
@@ -348,28 +350,11 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
     }
   }
 
-  const uploadFileToDrive = async (file: File): Promise<string> => {
-    // A compressao e melhor esforco: quando ela falha, o original segue inteiro.
-    // Sem esta checagem o arquivo grande era recusado pela plataforma, fora da
-    // aplicacao, e virava "Nao foi possivel adicionar a garantia".
-    validarTamanhoParaEnvio(file)
-
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("folderId", "1-NZHEq0_4bKpL99KN2K-u5eQTxJ7BXfn")
-
-    const response = await fetchAutenticado("/api/upload", {
-      method: "POST",
-      body: formData,
-    })
-
-    if (!response.ok) {
-      throw new Error("Erro ao fazer upload do arquivo")
-    }
-
-    const result = await response.json()
-    return result.fileUrl
-  }
+  // Envia direto do navegador para o Drive (ver lib/google-drive.ts). O arquivo
+  // nao atravessa o servidor, entao foto grande deixa de esbarrar no teto da
+  // plataforma — era isso que virava "Nao foi possivel adicionar a garantia".
+  const uploadFileToDrive = (file: File): Promise<string> =>
+    uploadParaDrive(file, PASTA_DRIVE_GARANTIA)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
