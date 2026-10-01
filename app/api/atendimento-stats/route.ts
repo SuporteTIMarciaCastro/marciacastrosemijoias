@@ -23,13 +23,30 @@ export async function GET(request: NextRequest) {
 
   try {
     const url = `${API_BASE}?date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`
-    const res = await fetch(url, { cache: "no-store" })
+
+    // Timeout proprio: quando o servico de metricas cai, a conexao fica
+    // pendurada ate a funcao ser cortada, e a tela passa esse tempo todo
+    // "carregando" sem dizer nada. Melhor desistir cedo e explicar.
+    const controle = new AbortController()
+    const relogio = setTimeout(() => controle.abort(), 8000)
+
+    let res: Response
+    try {
+      res = await fetch(url, { cache: "no-store", signal: controle.signal })
+    } finally {
+      clearTimeout(relogio)
+    }
 
     if (!res.ok) {
       const text = await res.text().catch(() => "")
       return NextResponse.json(
-        { error: `Erro ${res.status} ao consultar API externa`, details: text },
-        { status: res.status }
+        {
+          error: "O serviço de métricas do Kommo respondeu com erro.",
+          servicoIndisponivel: true,
+          status: res.status,
+          details: text.slice(0, 300),
+        },
+        { status: 502 }
       )
     }
 
@@ -59,9 +76,17 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": "no-store" },
     })
   } catch (e: any) {
-    console.error("Erro ao consultar API de atendimento:", e)
+    // Chega aqui quando o servico sequer aceita conexao (fora do ar, caiu a
+    // maquina, DNS aponta para lugar nenhum) ou quando estourou o timeout.
+    const expirou = e?.name === "AbortError"
+    console.error("Erro ao consultar API de atendimento:", e?.message || e)
     return NextResponse.json(
-      { error: e?.message || "Falha ao consultar API externa" },
+      {
+        error: expirou
+          ? "O serviço de métricas do Kommo não respondeu a tempo."
+          : "Não foi possível falar com o serviço de métricas do Kommo.",
+        servicoIndisponivel: true,
+      },
       { status: 502 }
     )
   }

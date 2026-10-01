@@ -127,7 +127,18 @@ export default function EstatisticasAtendimentoPage() {
     try {
       const url = `${API_BASE}?date_from=${toApiDate(dateFrom)}&date_to=${toApiDate(dateTo)}`
       const res = await fetchAutenticado(url, { cache: "no-store" })
-      if (!res.ok) throw new Error(`Erro ${res.status} ao consultar a API`)
+      if (!res.ok) {
+        // As metricas vem de um servico externo (a integracao do Kommo). Quando
+        // ele esta fora do ar nao ha nada a corrigir por aqui, e mostrar o
+        // codigo HTTP so faz parecer defeito do sistema.
+        const corpo = await res.json().catch(() => null)
+        throw new Error(
+          corpo?.servicoIndisponivel
+            ? `${corpo.error} Os dados estão guardados lá e aparecem assim que ele voltar — ` +
+              `tente de novo em alguns minutos. Se persistir, avise quem cuida dessa integração.`
+            : corpo?.error || `Erro ${res.status} ao consultar a API`
+        )
+      }
       const json = await res.json()
       const arr: SellerStat[] = Array.isArray(json) ? json : json?.data ?? []
       setData(arr)
