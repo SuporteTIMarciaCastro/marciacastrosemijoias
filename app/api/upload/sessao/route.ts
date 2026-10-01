@@ -70,6 +70,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Falha ao autenticar no Drive" }, { status: 502 })
     }
 
+    // O Origin do navegador PRECISA ser repassado na abertura da sessao.
+    //
+    // Sem ele o Google ainda responde o preflight com Access-Control-Allow-Origin
+    // — o que engana —, mas NAO devolve esse cabecalho na resposta do PUT. O
+    // arquivo chega a subir e mesmo assim o navegador recusa ler a resposta,
+    // e o envio aparece como falha. Com o Origin repassado, o cabecalho vem
+    // nas duas respostas. Medido em 01/10/2026.
+    const origem = request.headers.get("origin")
+
     const resposta = await fetch(
       "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,webViewLink",
       {
@@ -79,6 +88,7 @@ export async function POST(request: NextRequest) {
           "Content-Type": "application/json; charset=UTF-8",
           "X-Upload-Content-Type": mimeType,
           "X-Upload-Content-Length": String(tamanho),
+          ...(origem ? { Origin: origem } : {}),
         },
         body: JSON.stringify({ name: nomeArquivo, parents: [folderId] }),
       }
