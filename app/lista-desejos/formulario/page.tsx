@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { addWishlistItem } from "@/lib/firebase/wishlist"
 import { CheckCircle2 } from "lucide-react"
 import { CompressibleImageInput } from "@/components/compressible-image-input"
+import { validarTamanhoParaEnvio, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
 // import { GoogleDriveUploader, UploadResult } from "@/google-drive-uploader-component/components/GoogleDriveUploader"
 
 export default function FormularioDesejoPage() {
@@ -65,6 +66,10 @@ export default function FormularioDesejoPage() {
   }
 
   const uploadFileToDrive = async (file: File): Promise<string> => {
+    // Acima do teto da plataforma a requisicao e recusada fora da aplicacao e
+    // o cliente so veria uma falha sem explicacao.
+    validarTamanhoParaEnvio(file)
+
     const formData = new FormData()
     formData.append("file", file)
     formData.append("folderId", "1dQYLq0i_h59A5ZOMI0a2JrdJ0Bu8IvBP") // ID da pasta da lista de desejos
@@ -171,7 +176,7 @@ export default function FormularioDesejoPage() {
     } catch (error) {
       toast({
         title: "Erro",
-        description: "Não foi possível enviar seu pedido. Tente novamente.",
+        description: mensagemDeErroDeEnvio(error, "Não foi possível enviar seu pedido. Tente novamente."),
         variant: "destructive",
       })
     } finally {

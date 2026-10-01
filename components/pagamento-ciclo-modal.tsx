@@ -14,6 +14,7 @@ import { useAuth } from "@/context/auth-context"
 import { Loader2 } from "lucide-react"
 import { registrarPagamento } from "@/lib/firebase/ciclos"
 import { uploadParaDrive, PASTA_DRIVE_REVENDAS } from "@/lib/google-drive"
+import { ehErroArquivoGrande } from "@/lib/upload-limites"
 import {
   FORMA_PAGAMENTO_CODES,
   FORMA_PAGAMENTO_PADRAO,
@@ -171,8 +172,9 @@ export default function PagamentoCicloModal({
       toast({
         title: "Erro",
         description:
-          error instanceof Error && error.message.includes("prestação")
-            ? error.message
+          (error instanceof Error && error.message.includes("prestação")) ||
+          ehErroArquivoGrande(error)
+            ? (error as Error).message
             : "Não foi possível registrar o pagamento.",
         variant: "destructive",
       })

@@ -20,6 +20,7 @@ import {
 } from "@/lib/firebase/ciclos"
 import { fetchVendedores } from "@/lib/firebase/vendedores"
 import { uploadParaDrive, PASTA_DRIVE_REVENDAS } from "@/lib/google-drive"
+import { mensagemDeErroDeEnvio } from "@/lib/upload-limites"
 import { somarDias, formatarDataBR } from "@/lib/ciclo-status"
 import { registrarAuditoria } from "@/lib/firebase/auditoria"
 import { formatarMoedaAuditoria } from "@/lib/auditoria"
@@ -293,7 +294,7 @@ export default function CicloFormModal({
         console.error("Erro ao registrar entrega:", error)
         toast({
           title: "Erro",
-          description: "Não foi possível registrar a entrega. Tente novamente.",
+          description: mensagemDeErroDeEnvio(error, "Não foi possível registrar a entrega. Tente novamente."),
           variant: "destructive",
         })
       }

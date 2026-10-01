@@ -13,6 +13,7 @@ import { useAuth } from "@/context/auth-context"
 import { Loader2, ShieldAlert } from "lucide-react"
 import { addDocumentoVendedor } from "@/lib/firebase/documentos-vendedor"
 import { registrarAuditoria } from "@/lib/firebase/auditoria"
+import { mensagemDeErroDeEnvio, LIMITE_ENVIO_MB } from "@/lib/upload-limites"
 import {
   uploadParaDrive,
   extensaoDoArquivo,
@@ -34,7 +35,9 @@ interface DocumentoVendedorModalProps {
   onSuccess: () => void
 }
 
-const MAX_FILE_SIZE_MB = 10
+// Alinhado ao teto da plataforma: PDF nao passa por compressao, entao
+// qualquer arquivo acima disso era recusado antes de chegar na aplicacao.
+const MAX_FILE_SIZE_MB = LIMITE_ENVIO_MB
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024
 
 export default function DocumentoVendedorModal({
@@ -139,7 +142,7 @@ export default function DocumentoVendedorModal({
       console.error("Erro ao enviar documento:", error)
       toast({
         title: "Erro",
-        description: "Não foi possível enviar o documento. Tente novamente.",
+        description: mensagemDeErroDeEnvio(error, "Não foi possível enviar o documento. Tente novamente."),
         variant: "destructive",
       })
     } finally {

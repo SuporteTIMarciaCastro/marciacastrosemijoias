@@ -1,4 +1,5 @@
 import { fetchAutenticado } from "@/lib/api-client"
+import { validarTamanhoParaEnvio } from "@/lib/upload-limites"
 
 // Anexos do sistema vão para o Google Drive, não para o Firebase Storage
 // (lib/firebase/config.ts nem inicializa o Storage). O fluxo é:
@@ -47,6 +48,10 @@ export async function uploadParaDrive(
   const arquivo = nomeArquivo
     ? new File([file], `${nomeArquivo}.${extensaoDoArquivo(file.name)}`, { type: file.type })
     : file
+
+  // Antes de sair pela rede: acima do teto da plataforma a requisicao e
+  // recusada fora da aplicacao, e o erro chega sem explicacao nenhuma.
+  validarTamanhoParaEnvio(arquivo)
 
   const formData = new FormData()
   formData.append("file", arquivo)

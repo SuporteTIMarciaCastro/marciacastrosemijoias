@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { fetchAutenticado } from "@/lib/api-client"
+import { validarTamanhoParaEnvio, mensagemDeErroDeEnvio } from "@/lib/upload-limites"
 
 import { useState, useEffect } from "react"
 import imageCompression from "browser-image-compression"
@@ -348,6 +349,11 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
   }
 
   const uploadFileToDrive = async (file: File): Promise<string> => {
+    // A compressao e melhor esforco: quando ela falha, o original segue inteiro.
+    // Sem esta checagem o arquivo grande era recusado pela plataforma, fora da
+    // aplicacao, e virava "Nao foi possivel adicionar a garantia".
+    validarTamanhoParaEnvio(file)
+
     const formData = new FormData()
     formData.append("file", file)
     formData.append("folderId", "1-NZHEq0_4bKpL99KN2K-u5eQTxJ7BXfn")
@@ -474,7 +480,10 @@ export default function GarantiaFormModal({ isOpen, onClose, itemId, onSuccess }
       console.error("Erro ao salvar garantia:", error)
       toast({
         title: "Erro",
-        description: `Não foi possível ${itemId ? "atualizar" : "adicionar"} a garantia. Tente novamente.`,
+        description: mensagemDeErroDeEnvio(
+          error,
+          `Não foi possível ${itemId ? "atualizar" : "adicionar"} a garantia. Tente novamente.`
+        ),
         variant: "destructive",
       })
     } finally {
