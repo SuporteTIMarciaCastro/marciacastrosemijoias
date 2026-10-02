@@ -20,8 +20,9 @@
 
 export const ATENDENTES_ATIVOS: { id: number; nome: string }[] = [
   { id: 12058112, nome: "CYNARA" },
-  { id: 14970615, nome: "MARIA CLARA" },
   { id: 15512727, nome: "LETICIA" },
+  // MARIA CLARA (id 14970615) saiu da lista em 02/10/2026. Os dados dela
+  // continuam na origem: basta reincluir o id para voltarem a aparecer.
   // Conta da administracao: nao e atendente, mas tem volume real e a diretoria
   // quer continuar acompanhando.
   { id: 8375945, nome: "Administração" },
