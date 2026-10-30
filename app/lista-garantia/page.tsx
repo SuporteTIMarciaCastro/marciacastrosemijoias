@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/components/ui/use-toast"
-import { fetchWarrantyItems, countWarrantyItems, deleteWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
+import { countWarrantyItems, deleteWarrantyItem, fetchWarrantyItem, fetchWarrantyItemsPaginated, fetchWarrantyItemsPaginatedByName, fetchWarrantyItemsPaginatedWithFilters } from "@/lib/firebase/warranty"
 import type { WarrantyItem } from "@/types"
 import Header from "@/components/header"
 import GarantiaFormModal from "@/components/garantia-form-modal"
@@ -64,23 +64,22 @@ export default function ListaGarantiaPage() {
   const [lastDoc, setLastDoc] = useState<any>(null)
   const [pageDocs, setPageDocs] = useState<any[]>([])
   const [totalItems, setTotalItems] = useState<number | null>(null)
+  // Muda a cada salvamento para o efeito da pagina recarregar so a pagina atual.
+  const [versaoLista, setVersaoLista] = useState(0)
   const searchParams = useSearchParams()
 
-  const loadWarrantyItems = async () => {
-    setIsLoading(true)
-    try {
-      const items = await fetchWarrantyItems()
-      setWarrantyItems(items)
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar a lista de garantias",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Recarrega APENAS a pagina visivel.
+  //
+  // Antes, salvar ou finalizar uma garantia baixava a colecao inteira — mais
+  // de mil e quinhentos documentos por salvamento. No plano gratuito do
+  // Firestore sao 50 mil leituras por dia, ou seja, cerca de trinta
+  // salvamentos esgotavam a cota do dia inteiro e o banco passava a recusar
+  // tudo com "Quota exceeded" — que na tela aparecia como "Nao foi possivel
+  // adicionar a garantia".
+  //
+  // Mudar este contador faz o efeito da pagina rodar de novo, lendo os 20
+  // documentos da pagina atual em vez da colecao toda.
+  const recarregarLista = () => setVersaoLista((n) => n + 1)
 
   useEffect(() => {
     if (!user) {
@@ -152,7 +151,7 @@ export default function ListaGarantiaPage() {
       } catch {}
     }
     fetchTotal()
-  }, [user])
+  }, [user, versaoLista])
 
   // Carregar página de garantias
   useEffect(() => {
@@ -190,7 +189,7 @@ export default function ListaGarantiaPage() {
     }
     loadPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentPage, searchTerm, lojaFilter, statusFilter, finalizadaFilter])
+  }, [user, currentPage, searchTerm, lojaFilter, statusFilter, finalizadaFilter, versaoLista])
 
   // Sempre que filtros mudarem, resetar paginação
   useEffect(() => {
@@ -225,8 +224,8 @@ export default function ListaGarantiaPage() {
   }
 
   const handleFinalizeSuccess = async () => {
-    // Recarregar a lista de garantias
-    await loadWarrantyItems()
+    // Recarrega so a pagina visivel, nao a colecao inteira.
+    recarregarLista()
     
     // Enviar email se necessário
     if (selectedWarrantyItem && selectedWarrantyItem.email) {
@@ -274,7 +273,7 @@ export default function ListaGarantiaPage() {
   }
 
   const handleSuccess = () => {
-    loadWarrantyItems()
+    recarregarLista()
   }
 
   const handlePrintWarranty = async (item: WarrantyItem) => {
